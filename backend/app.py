@@ -41,4 +41,9 @@ if __name__ == "__main__":
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     os.makedirs(UPLOAD_EJEMPLOS_FOLDER, exist_ok=True)
 
-    app.run(debug=config.DEBUG)
+    # Para desarrollo local
+    if os.getenv('FLASK_ENV') == 'development':
+        app.run(debug=True, host='0.0.0.0', port=5000)
+    else:
+        # Para producción (Render, etc)
+        app.run(debug=False, host='0.0.0.0', port=int(os.getenv('PORT', 5000)))
