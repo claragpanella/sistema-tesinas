@@ -44,7 +44,7 @@ init_db()
 try:
     from seed_admin import crear_admin
     from seed_data import seed_database
-    from seed_pautas import seed_pautas
+    from seed_pautas import cargar_pautas
     from utils.db_utils import get_db
 
     # Evita doble ejecución en modo debug
@@ -68,7 +68,7 @@ try:
 
             if count_pautas == 0:
                 print("📚 Cargando pautas...")
-                seed_pautas()
+                cargar_pautas()
 
         SEED_EJECUTADO = True
         print("✅ Inicialización completada")
