@@ -18,7 +18,11 @@ from routes.chat import chat_bp
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = config.SECRET_KEY
-CORS(app)
+CORS(app, origins=[
+    "http://localhost:5173",
+    "https://sistema-tesinas.vercel.app",  # ← Cambiar por tu URL real de Vercel
+    "https://sistema-tesinas-*.vercel.app"  # ← Permite previews de Vercel
+], supports_credentials=True)
 
 # Inicializa la base de datos
 init_db()
