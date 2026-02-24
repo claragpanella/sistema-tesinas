@@ -20,36 +20,40 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = config.SECRET_KEY
 
 # =========================
-# CORS CONFIGURACIÓN MEJORADA
+# CORS CONFIGURACIÓN COMPLETA
 # =========================
-# Obtener orígenes permitidos desde variable de entorno o usar por defecto
-FRONTEND_URLS = os.getenv('FRONTEND_URLS', 'http://localhost:5173').split(',')
-
-# Lista completa de orígenes permitidos
-allowed_origins = [
-    "http://localhost:5173",
-    "http://localhost:5174",
-    "http://localhost:3000",
-]
-
-# Agregar URLs de producción desde variable de entorno
-if os.getenv('FRONTEND_URLS'):
-    allowed_origins.extend(FRONTEND_URLS)
-
-# Agregar URLs específicas conocidas
-allowed_origins.extend([
-    "https://sistema-tesinas.vercel.app",
-    "https://tesinas-frontend.vercel.app",  # Tu URL de Vercel
-])
-
-# CORS con configuración completa
 CORS(app, 
-    origins=allowed_origins,
-    supports_credentials=True,
-    allow_headers=['Content-Type', 'Authorization', 'X-User-Id'],
-    methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    expose_headers=['Content-Type', 'Authorization']
+    resources={
+        r"/*": {
+            "origins": [
+                "http://localhost:5173",
+                "http://localhost:5174",
+                "http://localhost:3000",
+                "https://sistema-tesinas.vercel.app",
+                "https://sistema-tesinas-*.vercel.app"
+            ],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization", "X-User-Id"],
+            "expose_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": True,
+            "max_age": 3600
+        }
+    }
 )
+
+# =========================
+# MANEJO EXPLÍCITO DE OPTIONS (PREFLIGHT)
+# =========================
+@app.before_request
+def handle_preflight():
+    from flask import request, make_response
+    if request.method == "OPTIONS":
+        response = make_response()
+        response.headers.add("Access-Control-Allow-Origin", request.headers.get("Origin", "*"))
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization,X-User-Id")
+        response.headers.add("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
+        response.headers.add("Access-Control-Allow-Credentials", "true")
+        return response, 200
 
 # =========================
 # LOGGING EN PRODUCCIÓN
@@ -61,7 +65,7 @@ if os.getenv('FLASK_ENV') != 'development':
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     logger = logging.getLogger(__name__)
-    logger.info(f"App iniciada con orígenes permitidos: {allowed_origins}")
+    logger.info("App iniciada en producción")
 
 # =========================
 # HEALTH CHECK ENDPOINT
@@ -100,18 +104,6 @@ def not_found(error):
 @app.errorhandler(500)
 def internal_error(error):
     return {'error': 'Error interno del servidor'}, 500
-
-@app.errorhandler(Exception)
-def handle_exception(error):
-    """Manejo global de excepciones"""
-    if os.getenv('FLASK_ENV') != 'development':
-        logger = logging.getLogger(__name__)
-        logger.error(f"Error no manejado: {str(error)}")
-    
-    return {
-        'error': 'Error en el servidor',
-        'message': str(error) if os.getenv('FLASK_ENV') == 'development' else 'Error interno'
-    }, 500
 
 # Inicializa la base de datos
 init_db()
