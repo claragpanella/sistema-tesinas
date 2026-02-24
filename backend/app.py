@@ -28,6 +28,34 @@ CORS(app, origins=[
 init_db()
 
 # =========================
+# Auto-inicializar datos (admin + seed)
+# =========================
+try:
+    from seed_admin import crear_admin
+    from seed_data import seed_database
+    from utils.db_utils import get_db
+    
+    print("🔄 Verificando base de datos...")
+    
+    # Crear admin siempre (usa INSERT OR IGNORE, no duplica)
+    crear_admin()
+    
+    # Verificar si hay más usuarios, si no, cargar datos de prueba
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM usuarios WHERE rol != 'admin'")
+        count = cursor.fetchone()[0]
+        
+        if count == 0:
+            print("🌱 Cargando tutores y alumnos de prueba...")
+            seed_database()
+        else:
+            print(f"✅ Base de datos lista ({count + 1} usuarios totales)")
+            
+except Exception as e:
+    print(f"⚠️ Error en inicialización de BD: {e}")
+
+# =========================
 # Blueprints
 # =========================
 app.register_blueprint(tesinas_bp)
@@ -35,10 +63,24 @@ app.register_blueprint(ejemplos_bp)
 app.register_blueprint(files_bp)
 app.register_blueprint(pautas_bp, url_prefix="/pautas")
 app.register_blueprint(tutores_bp)
-app.register_blueprint(auth_bp, url_prefix='/auth')
+app.register_blueprint(auth_bp)
 app.register_blueprint(admin_usuarios_bp)
 app.register_blueprint(perfil_bp)
 app.register_blueprint(chat_bp)
+
+@app.route("/")
+def home():
+    return {
+        "message": "API de Sistema de Tesinas",
+        "version": "1.0",
+        "status": "online",
+        "endpoints": {
+            "auth": "/login, /register, /refresh",
+            "tesinas": "/tesinas",
+            "tutores": "/tutores",
+            "admin": "/admin/*"
+        }
+    }
 
 if __name__ == "__main__":
     # Asegura que existan las carpetas de uploads
