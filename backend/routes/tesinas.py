@@ -614,38 +614,60 @@ def eliminar_tesina(tesina_id):
             
             # Eliminar archivos físicos
             archivos_eliminados = []
+            archivos_no_encontrados = []
+            archivos_con_error = []
+            
             archivos_a_eliminar = set([tesina['nombre_archivo']])
             
             for v in versiones:
                 archivos_a_eliminar.add(v['nombre_archivo'])
             
+            print(f"📁 Intentando eliminar {len(archivos_a_eliminar)} archivos...")
+            
             for nombre_archivo in archivos_a_eliminar:
                 filepath = os.path.join(UPLOAD_FOLDER, nombre_archivo)
+                
                 if os.path.exists(filepath):
                     try:
                         os.remove(filepath)
                         archivos_eliminados.append(nombre_archivo)
+                        print(f"✓ Archivo eliminado: {nombre_archivo}")
                     except Exception as e:
-                        print(f"Error al eliminar archivo {nombre_archivo}: {e}")
+                        archivos_con_error.append(nombre_archivo)
+                        print(f"❌ Error al eliminar {nombre_archivo}: {e}")
+                else:
+                    archivos_no_encontrados.append(nombre_archivo)
+                    print(f"⚠️ Archivo no existe: {nombre_archivo}")
 
             # Eliminar versiones de la base de datos
             cursor.execute("""
                 DELETE FROM versiones_tesinas WHERE tesina_id = ?
             """, (tesina_id,))
+            versiones_eliminadas = cursor.rowcount
+            print(f"✓ {versiones_eliminadas} versiones eliminadas de BD")
 
             # Eliminar tesina de la base de datos
             cursor.execute("""
                 DELETE FROM tesinas WHERE id = ?
             """, (tesina_id,))
+            print(f"✓ Tesina {tesina_id} eliminada de BD")
 
             conn.commit()
+            print(f"✓ Cambios guardados en BD")
 
         return jsonify({
             "message": "Tesina eliminada permanentemente",
-            "archivos_eliminados": len(archivos_eliminados)
+            "archivos_eliminados": len(archivos_eliminados),
+            "archivos_no_encontrados": len(archivos_no_encontrados),
+            "archivos_con_error": len(archivos_con_error),
+            "versiones_eliminadas": versiones_eliminadas
         })
 
     except Exception as e:
+        print(f"❌ ERROR COMPLETO al eliminar tesina {tesina_id}:")
+        import traceback
+        traceback.print_exc()
+        
         return jsonify({
             "error": f"Error al eliminar tesina: {str(e)}"
         }), 500

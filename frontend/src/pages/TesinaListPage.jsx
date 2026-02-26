@@ -24,32 +24,62 @@ export function TesinaListPage() {
   const [pagination, setPagination] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')  // ← AGREGAR ESTE ESTADO
+  const [deletingId, setDeletingId] = useState(null)
 
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [estado, setEstado] = useState('')
-  const [deletingId, setDeletingId] = useState(null)
 
   const handleDelete = async (id, titulo) => {
-  if (!confirm(`⚠️ ¿Estás seguro de ELIMINAR permanentemente la tesina "${titulo}"?\n\nEsta acción:\n• Eliminará la tesina y todas sus versiones\n• Eliminará todos los archivos asociados\n• NO se puede deshacer\n\n¿Continuar?`)) {
-    return
-  }
+    // Prevenir múltiples clicks
+    if (deletingId) {
+      return
+    }
 
-  setDeletingId(id)
-  try {
-    await api.delete(`/tesinas/${id}`)
-    setSuccess('Tesina eliminada permanentemente')
-    fetchTesinas()
-    setTimeout(() => setSuccess(''), 3000)
-  } catch (err) {
-    setError(err.response?.data?.error || 'Error al eliminar la tesina')
-  } finally {
-    setDeletingId(null)
+    const confirmado = window.confirm(
+      `⚠️ ¿Estás seguro de ELIMINAR permanentemente la tesina "${titulo}"?\n\n` +
+      `Esta acción:\n` +
+      `• Eliminará la tesina y todas sus versiones\n` +
+      `• Eliminará todos los archivos asociados\n` +
+      `• NO se puede deshacer\n\n` +
+      `¿Continuar?`
+    )
+
+    if (!confirmado) {
+      return
+    }
+
+    setDeletingId(id)
+    setError('')
+    
+    try {
+      // Eliminar tesina
+      await api.delete(`/tesinas/${id}`)
+      
+      // Mostrar éxito
+      setSuccess('✓ Tesina eliminada permanentemente')
+      
+      // Eliminar de la lista local inmediatamente (sin esperar al servidor)
+      setTesinas(prevTesinas => prevTesinas.filter(t => t.id !== id))
+      
+      // Limpiar estado
+      setDeletingId(null)
+      
+      // Limpiar mensaje después de 3 segundos
+      setTimeout(() => setSuccess(''), 3000)
+      
+    } catch (err) {
+      console.error('Error:', err)
+      setError(err.response?.data?.error || 'Error al eliminar la tesina')
+      setDeletingId(null)
+    }
   }
-}
 
   const fetchTesinas = async () => {
     setLoading(true)
+    setError('')
+    
     try {
       const params = new URLSearchParams()
       params.append('page', page)
@@ -61,26 +91,24 @@ export function TesinaListPage() {
 
       const items = response.data.items || response.data || []
       
-      // ← LÓGICA PARA ALUMNOS
       if (isAlumno) {
         if (items.length === 1) {
-          // Si tiene una tesina, redirigir al detalle
           navigate(`/tesinas/${items[0].id}`, { replace: true })
           return
         } else if (items.length === 0) {
-          // Si no tiene tesina, mostrar mensaje
           setTesinas([])
           setPagination(null)
         }
       } else {
-        // Admin/Tutor: mostrar lista normal
         setTesinas(items)
         setPagination(response.data.pagination || null)
       }
 
     } catch (err) {
-      console.error('Error:', err)
-      setError('Error al cargar las tesinas')
+      console.error('Error al cargar tesinas:', err)
+      if (err.response?.status !== 404) {
+        setError('Error al cargar las tesinas')
+      }
       setTesinas([])
     } finally {
       setLoading(false)
@@ -104,7 +132,7 @@ export function TesinaListPage() {
     setPage(1)
   }
 
-  // ← VISTA ESPECIAL PARA ALUMNO SIN TESINA
+  // VISTA ESPECIAL PARA ALUMNO SIN TESINA
   if (isAlumno && !loading && tesinas.length === 0) {
     return (
       <Layout>
@@ -127,7 +155,7 @@ export function TesinaListPage() {
     )
   }
 
-  // ← VISTA PARA ADMIN/TUTOR (listado completo)
+  // VISTA PARA ADMIN/TUTOR (listado completo)
   return (
     <Layout>
       {/* Header */}
@@ -147,6 +175,13 @@ export function TesinaListPage() {
       {error && (
         <div className="mb-4">
           <Alert type="error" message={error} onClose={() => setError('')} />
+        </div>
+      )}
+      
+      {/* Alerta de éxito */}
+      {success && (
+        <div className="mb-4">
+          <Alert type="success" message={success} onClose={() => setSuccess('')} />
         </div>
       )}
 
@@ -192,99 +227,96 @@ export function TesinaListPage() {
       ) : (
         <>
           {/* Lista de tesinas */}
-<div className="space-y-4">
-  {tesinas.map((tesina) => (
-    <div
-      key={tesina.id}
-      className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow"
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-4 flex-1">
-          <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
-            <FileText className="w-5 h-5 text-indigo-600" />
+          <div className="space-y-4">
+            {tesinas.map((tesina) => (
+              <div
+                key={tesina.id}
+                className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-4 flex-1">
+                    <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <FileText className="w-5 h-5 text-indigo-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+
+                      {/* Título y estado */}
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <h3 className="font-semibold text-gray-900 truncate">
+                          {tesina.titulo || 'Sin título'}
+                        </h3>
+                        <Badge text={tesina.estado} />
+                      </div>
+
+                      {/* Alumno y tutor */}
+                      <div className="flex items-center gap-3 mb-2 flex-wrap">
+                        {tesina.alumno_nombre && (
+                          <span className="text-xs text-gray-500 flex items-center gap-1">
+                            <span className="w-4 h-4 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold" style={{fontSize: '8px'}}>
+                              A
+                            </span>
+                            {tesina.alumno_nombre}
+                          </span>
+                        )}
+                        {tesina.tutor_nombre && (
+                          <span className="text-xs text-gray-500 flex items-center gap-1">
+                            <span className="w-4 h-4 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold" style={{fontSize: '8px'}}>
+                              T
+                            </span>
+                            {tesina.tutor_nombre}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Resumen */}
+                      {tesina.resumen && (
+                        <p className="text-sm text-gray-600 line-clamp-2">
+                          {tesina.resumen}
+                        </p>
+                      )}
+
+                      {/* Observaciones */}
+                      {tesina.observaciones && (
+                        <p className="text-xs text-gray-500 mt-1 italic">
+                          Observación: {tesina.observaciones}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Botones de acción */}
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => navigate(`/tesinas/${tesina.id}`)}
+                      className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-700 whitespace-nowrap"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Ver detalle
+                    </button>
+                    
+                    {/* Botón eliminar (solo admin) */}
+                    {isAdmin && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDelete(tesina.id, tesina.titulo)
+                        }}
+                        disabled={deletingId === tesina.id}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Eliminar tesina"
+                      >
+                        {deletingId === tesina.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="flex-1 min-w-0">
-
-            {/* Título y estado */}
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <h3 className="font-semibold text-gray-900 truncate">
-                {tesina.titulo || 'Sin título'}
-              </h3>
-              <Badge text={tesina.estado} />
-            </div>
-
-            {/* Alumno y tutor */}
-            <div className="flex items-center gap-3 mb-2 flex-wrap">
-              {tesina.alumno_nombre && (
-                <span className="text-xs text-gray-500 flex items-center gap-1">
-                  <span className="w-4 h-4 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold" style={{fontSize: '8px'}}>
-                    A
-                  </span>
-                  {tesina.alumno_nombre}
-                </span>
-              )}
-              {tesina.tutor_nombre && (
-                <span className="text-xs text-gray-500 flex items-center gap-1">
-                  <span className="w-4 h-4 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold" style={{fontSize: '8px'}}>
-                    T
-                  </span>
-                  {tesina.tutor_nombre}
-                </span>
-              )}
-            </div>
-
-            {/* Resumen */}
-            {tesina.resumen && (
-              <p className="text-sm text-gray-600 line-clamp-2">
-                {tesina.resumen}
-              </p>
-            )}
-
-            {/* Observaciones */}
-            {tesina.observaciones && (
-              <p className="text-xs text-gray-500 mt-1 italic">
-                Observación: {tesina.observaciones}
-              </p>
-            )}
-          </div>
-        </div>
-
-{/* Botones de acción */}
-<div className="flex items-center gap-3">
-  <button
-    onClick={() => navigate(`/tesinas/${tesina.id}`)}
-    className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-700 whitespace-nowrap"
-  >
-    <Eye className="w-4 h-4" />
-    Ver detalle
-  </button>
-  
-  {/* Separador + Botón eliminar (solo admin) */}
-  {isAdmin && (
-    <>
-      <div className="w-px h-6 bg-gray-200"></div>
-      <button
-        onClick={(e) => {
-          e.stopPropagation()
-          handleDelete(tesina.id, tesina.titulo)
-        }}
-        disabled={deletingId === tesina.id}
-        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-        title="Eliminar tesina"
-      >
-        {deletingId === tesina.id ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
-        ) : (
-          <Trash2 className="w-4 h-4" />
-        )}
-      </button>
-    </>
-  )}
-</div>
-      </div>
-    </div>
-  ))}
-</div>
 
           {/* Paginación */}
           {pagination && pagination.total_pages > 1 && (
