@@ -28,11 +28,12 @@ CORS(app, origins=[
 init_db()
 
 # =========================
-# Auto-inicializar datos (admin + seed)
+# Auto-inicializar datos (admin + seed + pautas)
 # =========================
 try:
     from seed_admin import crear_admin
     from seed_data import seed_database
+    from seed_pautas import cargar_pautas  # ← Agregar import
     from utils.db_utils import get_db
     
     print("🔄 Verificando base de datos...")
@@ -43,17 +44,31 @@ try:
     # Verificar si hay más usuarios, si no, cargar datos de prueba
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM usuarios WHERE rol != 'admin'")
-        count = cursor.fetchone()[0]
         
-        if count == 0:
+        # Verificar usuarios
+        cursor.execute("SELECT COUNT(*) FROM usuarios WHERE rol != 'admin'")
+        count_usuarios = cursor.fetchone()[0]
+        
+        if count_usuarios == 0:
             print("🌱 Cargando tutores y alumnos de prueba...")
             seed_database()
         else:
-            print(f"✅ Base de datos lista ({count + 1} usuarios totales)")
+            print(f"✅ Base de datos tiene {count_usuarios + 1} usuarios")
+        
+        # Verificar pautas
+        cursor.execute("SELECT COUNT(*) FROM pautas")
+        count_pautas = cursor.fetchone()[0]
+        
+        if count_pautas == 0:
+            print("📚 Cargando pautas de ejemplo...")
+            cargar_pautas()  # ← Llamar función
+        else:
+            print(f"✅ Base de datos tiene {count_pautas} pautas")
             
 except Exception as e:
     print(f"⚠️ Error en inicialización de BD: {e}")
+    import traceback
+    traceback.print_exc()
 
 # =========================
 # Blueprints
