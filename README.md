@@ -2,7 +2,7 @@
 
 Sistema web completo para la gestión de tesinas universitarias con roles de administrador, tutor y alumno. Incluye chat asistente con IA para ayuda académica.
 
-## ✨ Características Principales
+## Características Principales
 
 ### 👤 Gestión de Usuarios
 - **3 roles:** Administrador, Tutor y Alumno
@@ -19,18 +19,18 @@ Sistema web completo para la gestión de tesinas universitarias con roles de adm
 - Los tutores pueden **revisar y aprobar/rechazar** con observaciones
 - Preview y descarga de archivos (PDF, DOCX, DOC)
 
-### 🤖 Chat Asistente con IA
+### Chat Asistente con IA
 - Asistente académico con Google Gemini
 - Acceso contextual al contenido de la tesina
 - Ayuda con estructura, formato APA, redacción
 - Exclusivo para alumnos
 
-### 📚 Contenido Académico
+### Contenido Académico
 - **Pautas:** Normas APA, estructura, formato
 - **Ejemplos:** Tesinas modelo para referencia
 - Gestión completa por parte del admin
 
-### 🎨 Interfaz de Usuario
+### Interfaz de Usuario
 - Dashboards personalizados por rol
 - Diseño responsive (mobile-first)
 - Filtros y búsqueda avanzada
@@ -38,7 +38,7 @@ Sistema web completo para la gestión de tesinas universitarias con roles de adm
 
 ---
 
-## 🛠️ Tecnologías Utilizadas
+## Tecnologías Utilizadas
 
 ### Backend
 - **Python 3.14+**
@@ -57,7 +57,7 @@ Sistema web completo para la gestión de tesinas universitarias con roles de adm
 
 ---
 
-## 📦 Instalación
+## Instalación
 
 ### **Requisitos Previos**
 - Python 3.14 o superior
@@ -129,23 +129,23 @@ El frontend estará corriendo en `http://localhost:5173`
 
 ---
 
-## 👥 Usuarios de Prueba
+## Usuarios de Prueba
 
 ### Administrador
 - **Email:** admin@admin.com
 - **Contraseña:** admin123
 
 ### Tutor
-- **Email:** carlos.perez@universidad.edu
+- **Email:** maria.garcia@universidad.edu
 - **Contraseña:** tutor123
 
 ### Alumno
-- **Email:** juan.martinez@estudiante.edu
+- **Email:** pedro.lopez@estudiante.edu
 - **Contraseña:** alumno123
 
 ---
 
-## 📂 Estructura del Proyecto
+## Estructura del Proyecto
 ```
 repo-tesinas/
 ├── backend/
@@ -170,7 +170,7 @@ repo-tesinas/
 
 ---
 
-## 🚀 Funcionalidades por Rol
+## Funcionalidades por Rol
 
 ### 👨‍💼 Administrador
 - ✅ Gestionar alumnos (crear, editar, activar/desactivar, eliminar)
@@ -198,7 +198,7 @@ repo-tesinas/
 
 ---
 
-## 🤖 Chat Asistente
+## Chat Asistente
 
 El chat asistente usa **Google Gemini** (gratuito) para:
 
@@ -214,7 +214,7 @@ El chat asistente usa **Google Gemini** (gratuito) para:
 
 ---
 
-## 📝 Scripts Disponibles
+## Scripts Disponibles
 
 ### Backend
 ```powershell
@@ -231,7 +231,7 @@ npm run preview          # Preview del build
 
 ---
 
-## 🔒 Seguridad
+## Seguridad
 
 - ✅ Autenticación JWT con tokens de acceso y refresco
 - ✅ Contraseñas hasheadas con bcrypt
@@ -243,7 +243,7 @@ npm run preview          # Preview del build
 
 ---
 
-## 🐛 Problemas Conocidos
+## Problemas Conocidos
 
 - El chat asistente requiere conexión a internet
 - Los archivos muy grandes (>10MB) pueden tardar en subir
@@ -251,7 +251,7 @@ npm run preview          # Preview del build
 
 ---
 
-## 📄 Licencia
+## Licencia
 
 Este proyecto fue desarrollado como parte de un trabajo universitario.
 
@@ -265,20 +265,12 @@ Este proyecto fue desarrollado como parte de un trabajo universitario.
 
 ---
 
-## 🙏 Agradecimientos
-
-- Google Gemini por la API gratuita
-- Claude AI por la asistencia en el desarrollo
-- Universidad por el proyecto
-
----
-
-## 📞 Soporte
+## Soporte
 
 Si encontrás algún problema o tenés sugerencias:
 1. Abrí un issue en GitHub
-2. Contactame por email
+2. Contactame por email claragpanella@gmail.com
 
 ---
 
-**¡Gracias por usar el Sistema de Gestión de Tesinas!** 🎓📚
+**¡Gracias por usar el Sistema de Gestión de Tesinas!** 🎓
