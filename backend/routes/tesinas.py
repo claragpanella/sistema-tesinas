@@ -83,7 +83,6 @@ def upload_tesina():
                 VALUES (?, 1, ?, 'pendiente', NULL, ?)
             """, (tesina_id, nombre_archivo, datetime.now().isoformat()))
 
-            conn.commit()
 
         return jsonify({"message": "Tesina subida correctamente"})
 
@@ -251,7 +250,6 @@ def cambiar_estado_version(version_id):
                 WHERE id = ?
             """, (estado, tesina_id))
 
-            conn.commit()
 
         return jsonify({"message": "Estado de versión y tesina actualizado"})
     
@@ -295,7 +293,6 @@ def guardar_observaciones_version(version_id):
                 WHERE id = ?
             """, (observaciones, tesina_id))
 
-            conn.commit()
 
         return jsonify({"message": "Observaciones guardadas en versión y tesina"})
     
@@ -373,7 +370,6 @@ def reemplazar_archivo_tesina(tesina_id):
                 WHERE tesina_id = ? AND numero_version = 1
             """, (nuevo_nombre, tesina_id))
 
-            conn.commit()
 
         return jsonify({
             "message": "Archivo actualizado correctamente",
@@ -452,7 +448,6 @@ def editar_tesina(tesina_id):
                 WHERE id = ?
             """, (titulo, resumen, tutor_id, tesina_id))
 
-            conn.commit()
 
         return jsonify({
             "message": "Tesina actualizada correctamente"
@@ -524,7 +519,6 @@ def reentregar_tesina(tesina_id):
                 WHERE id = ?
             """, (tesina_id,))
 
-            conn.commit()
 
         return jsonify({"message": "Nueva versión subida", "version": new_version})
     
@@ -652,7 +646,6 @@ def eliminar_tesina(tesina_id):
             """, (tesina_id,))
             print(f"✓ Tesina {tesina_id} eliminada de BD")
 
-            conn.commit()
             print(f"✓ Cambios guardados en BD")
 
         return jsonify({

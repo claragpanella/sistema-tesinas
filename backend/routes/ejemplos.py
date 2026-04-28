@@ -169,7 +169,6 @@ def subir_ejemplo():
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (titulo, nombre_estudiante, anio, resumen, tutor, nombre_archivo))
 
-            conn.commit()
 
         return jsonify({"message": "Ejemplo subido correctamente"}), 201
     
@@ -219,7 +218,6 @@ def editar_ejemplo(ejemplo_id):
                 ejemplo_id
             ))
 
-            conn.commit()
 
         return jsonify({"message": "Ejemplo actualizado correctamente"})
     
@@ -253,7 +251,6 @@ def eliminar_ejemplo(ejemplo_id):
                 (ejemplo_id,)
             )
 
-            conn.commit()
 
         try:
             ruta = os.path.join(UPLOAD_EJEMPLOS_FOLDER, nombre_archivo)

@@ -119,11 +119,14 @@ def crear_usuario():
 
         nombre = data.get("nombre")
         email = data.get("email")
-        password = data.get("password", "123456")
+        password = data.get("password")
         rol = "alumno"  # ← FORZAR a alumno siempre
 
-        if not all([nombre, email]):
-            return jsonify({"error": "Faltan datos obligatorios"}), 400
+        if not all([nombre, email, password]):
+            return jsonify({"error": "Faltan datos obligatorios (nombre, email y password son requeridos)"}), 400
+
+        if len(password) < 8:
+            return jsonify({"error": "La contraseña debe tener al menos 8 caracteres"}), 400
 
         hashed_password = hash_password(password)
 
@@ -144,7 +147,6 @@ def crear_usuario():
                 VALUES (?, ?, ?, ?, 1)
             """, (nombre, email, hashed_password, rol))
 
-            conn.commit()
 
         return jsonify({"message": "Alumno creado correctamente"}), 201
     
@@ -201,7 +203,6 @@ def editar_usuario(usuario_id):
             if cursor.rowcount == 0:
                 return jsonify({"error": "No se pudo actualizar el usuario"}), 400
 
-            conn.commit()
 
         return jsonify({"message": "Alumno actualizado correctamente"})
     
@@ -246,7 +247,6 @@ def cambiar_estado_usuario(usuario_id):
             if cursor.rowcount == 0:
                 return jsonify({"error": "No se pudo actualizar el estado"}), 400
 
-            conn.commit()
 
         estado_texto = "activado" if activo else "desactivado"
         return jsonify({"message": f"Usuario {estado_texto} correctamente"})
@@ -302,7 +302,6 @@ def eliminar_usuario(usuario_id):
 
             # ELIMINAR permanentemente
             cursor.execute("DELETE FROM usuarios WHERE id = ?", (usuario_id,))
-            conn.commit()
 
         return jsonify({"message": "Usuario eliminado permanentemente"})
     
@@ -350,7 +349,6 @@ def cambiar_password(usuario_id):
                 WHERE id = ?
             """, (hashed_password, usuario_id))
 
-            conn.commit()
 
         return jsonify({"message": "Contraseña actualizada correctamente"})
     

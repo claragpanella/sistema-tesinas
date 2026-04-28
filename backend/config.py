@@ -28,7 +28,8 @@ JWT_REFRESH_TOKEN_EXPIRES = timedelta(seconds=int(os.getenv("JWT_REFRESH_TOKEN_E
 JWT_ALGORITHM = "HS256"
 
 # API de GEMINI 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")  # ← AGREGAR
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "") 
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 
 def allowed_file(filename):
     """Verifica si la extensión del archivo es válida"""

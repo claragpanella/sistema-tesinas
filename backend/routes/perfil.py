@@ -26,7 +26,6 @@ def actualizar_perfil():
                 SET nombre = ?
                 WHERE id = ?
             """, (nombre, user_id))
-            conn.commit()
 
         return jsonify({"message": "Perfil actualizado correctamente"})
 
@@ -76,7 +75,6 @@ def cambiar_password():
                 SET password = ?
                 WHERE id = ?
             """, (nueva_hash, user_id))
-            conn.commit()
 
         return jsonify({"message": "Contraseña actualizada correctamente"})
 

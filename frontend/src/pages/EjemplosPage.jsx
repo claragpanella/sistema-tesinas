@@ -39,16 +39,11 @@ export function EjemplosPage() {
   }
 
   useEffect(() => {
-    fetchEjemplos()
-  }, [page, anioDesde, anioHasta])
-
-  useEffect(() => {
     const timer = setTimeout(() => {
-      setPage(1)
       fetchEjemplos()
-    }, 500)
+    }, search ? 500 : 0)
     return () => clearTimeout(timer)
-  }, [search])
+  }, [page, search, anioDesde, anioHasta])
 
   const handleDownload = async (filename) => {
     try {
@@ -88,7 +83,7 @@ export function EjemplosPage() {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setPage(1) }}
               placeholder="Buscar por título, alumno o tutor..."
               className="input pl-9"
             />

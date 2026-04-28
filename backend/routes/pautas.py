@@ -118,7 +118,6 @@ def crear_categoria():
                 VALUES (?, ?)
             """, (nombre, orden))
 
-            conn.commit()
 
         return jsonify({"message": "Categoría creada correctamente"}), 201
     
@@ -169,7 +168,6 @@ def editar_categoria(categoria_id):
                 WHERE id = ?
             """, (nombre, orden, categoria_id))
 
-            conn.commit()
 
         return jsonify({"message": "Categoría actualizada correctamente"})
     
@@ -206,7 +204,6 @@ def eliminar_categoria(categoria_id):
             if cursor.rowcount == 0:
                 return jsonify({"error": "Categoría no encontrada"}), 404
 
-            conn.commit()
 
         return jsonify({"message": "Categoría eliminada correctamente"})
     
@@ -330,7 +327,6 @@ def crear_pauta():
                 VALUES (?, ?, ?, ?, ?)
             """, (titulo, descripcion, categoria_id, enlace, orden))
 
-            conn.commit()
 
         return jsonify({"message": "Pauta creada correctamente"}), 201
     
@@ -383,7 +379,6 @@ def editar_pauta(pauta_id):
                 WHERE id = ?
             """, (titulo, descripcion, categoria_id, enlace, orden, pauta_id))
 
-            conn.commit()
 
         return jsonify({"message": "Pauta actualizada correctamente"})
     
@@ -406,7 +401,6 @@ def eliminar_pauta(pauta_id):
             if cursor.rowcount == 0:
                 return jsonify({"error": "Pauta no encontrada"}), 404
 
-            conn.commit()
 
         return jsonify({"message": "Pauta eliminada correctamente"})
     

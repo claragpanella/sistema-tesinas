@@ -18,6 +18,7 @@ from routes.chat import chat_bp
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = config.SECRET_KEY
+app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10 MB máximo por archivo
 CORS(app, origins=[
     "http://localhost:5173",
     "https://sistema-tesinas.vercel.app",  # ← Cambiar por tu URL real de Vercel
@@ -96,6 +97,10 @@ def home():
             "admin": "/admin/*"
         }
     }
+
+@app.errorhandler(413)
+def archivo_demasiado_grande(e):
+    return {"error": "El archivo supera el tamaño máximo permitido (10 MB)"}, 413
 
 if __name__ == "__main__":
     # Asegura que existan las carpetas de uploads

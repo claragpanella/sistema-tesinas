@@ -137,10 +137,13 @@ def crear_tutor():
 
         nombre = data.get("nombre")
         email = data.get("email")
-        password = data.get("password", "123456")
+        password = data.get("password")
 
-        if not nombre or not email:
-            return jsonify({"error": "Faltan datos obligatorios"}), 400
+        if not all([nombre, email, password]):
+            return jsonify({"error": "Faltan datos obligatorios (nombre, email y password son requeridos)"}), 400
+
+        if len(password) < 8:
+            return jsonify({"error": "La contraseña debe tener al menos 8 caracteres"}), 400
 
         hashed_password = hash_password(password)
 
@@ -161,7 +164,6 @@ def crear_tutor():
                 VALUES (?, ?, ?, 'tutor', 1)
             """, (nombre, email, hashed_password))
             
-            conn.commit()
 
         return jsonify({"message": "Tutor creado correctamente"})
     
@@ -240,7 +242,6 @@ def editar_tutor(tutor_id):
             if cursor.rowcount == 0:
                 return jsonify({"error": "Tutor no encontrado"}), 404
 
-            conn.commit()
 
         return jsonify({"message": "Tutor actualizado"})
     
@@ -274,7 +275,6 @@ def cambiar_estado_tutor(tutor_id):
             if cursor.rowcount == 0:
                 return jsonify({"error": "Tutor no encontrado"}), 404
 
-            conn.commit()
 
         return jsonify({"message": "Estado del tutor actualizado"})
     
@@ -319,7 +319,6 @@ def eliminar_tutor(tutor_id):
             if cursor.rowcount == 0:
                 return jsonify({"error": "Tutor no encontrado"}), 404
 
-            conn.commit()
 
         return jsonify({"message": "Tutor eliminado permanentemente de la base de datos"})
     
@@ -434,7 +433,6 @@ def revisar_version(version_id):
                 WHERE id = ?
             """, (estado, observaciones, tesina_id))
 
-            conn.commit()
 
         return jsonify({
             "message": "Revisión guardada y estado de la tesina actualizado"

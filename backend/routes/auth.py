@@ -199,7 +199,6 @@ def register():
                 VALUES (?, ?, ?, ?, 0)
             """, (nombre, email, hashed, rol))
 
-            conn.commit()
 
         # NO generar tokens ni hacer login automático
         # El usuario debe esperar a ser activado por un admin

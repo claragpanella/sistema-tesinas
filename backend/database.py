@@ -95,6 +95,36 @@ def init_db():
             FOREIGN KEY (categoria_id) REFERENCES categorias_pautas(id)
         )
     """)
+    
+    # =========================
+    # Conversaciones del chat
+    # =========================
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS conversaciones (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            alumno_id INTEGER NOT NULL,
+            tesina_id INTEGER,
+            titulo TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (alumno_id) REFERENCES usuarios(id),
+            FOREIGN KEY (tesina_id) REFERENCES tesinas(id) ON DELETE SET NULL
+        )
+    """)
+
+    # =========================
+    # Mensajes del chat
+    # =========================
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS mensajes_chat (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            conversacion_id INTEGER NOT NULL,
+            rol TEXT NOT NULL CHECK(rol IN ('user', 'assistant')),
+            contenido TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (conversacion_id) REFERENCES conversaciones(id) ON DELETE CASCADE
+        )
+    """)
 
     conn.commit()
     conn.close()
