@@ -82,7 +82,7 @@ def obtener_ejemplos():
 # Listar ejemplos (SOLO ADMIN)
 # =========================
 @ejemplos_bp.route("/admin/ejemplos", methods=["GET"])
-@admin_required  # ← Solo admin
+@admin_required
 def listar_ejemplos_admin():
     try:
         with get_db() as conn:
@@ -107,7 +107,7 @@ def listar_ejemplos_admin():
 # Obtener UN ejemplo (SOLO ADMIN)
 # =========================
 @ejemplos_bp.route("/admin/ejemplos/<int:ejemplo_id>", methods=["GET"])
-@admin_required  # ← Solo admin
+@admin_required
 def obtener_ejemplo_admin(ejemplo_id):
     try:
         with get_db() as conn:
@@ -134,7 +134,7 @@ def obtener_ejemplo_admin(ejemplo_id):
 # Subir ejemplo (SOLO ADMIN)
 # =========================
 @ejemplos_bp.route("/admin/ejemplos", methods=["POST"])
-@admin_required  # ← Solo admin
+@admin_required 
 def subir_ejemplo():
     try:
         titulo = request.form.get("titulo")
@@ -180,7 +180,7 @@ def subir_ejemplo():
 # Editar ejemplo (SOLO ADMIN)
 # =========================
 @ejemplos_bp.route("/admin/ejemplos/<int:ejemplo_id>", methods=["PUT"])
-@admin_required  # ← Solo admin
+@admin_required
 def editar_ejemplo(ejemplo_id):
     try:
         data = request.get_json()
@@ -229,7 +229,7 @@ def editar_ejemplo(ejemplo_id):
 # Eliminar ejemplo (SOLO ADMIN)
 # =========================
 @ejemplos_bp.route("/admin/ejemplos/<int:ejemplo_id>", methods=["DELETE"])
-@admin_required  # ← Solo admin
+@admin_required
 def eliminar_ejemplo(ejemplo_id):
     try:
         with get_db() as conn:

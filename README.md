@@ -20,7 +20,7 @@ Sistema web completo para la gestión de tesinas universitarias con roles de adm
 - Preview y descarga de archivos (PDF, DOCX, DOC)
 
 ### Chat Asistente con IA
-- Asistente académico con Google Gemini
+- Asistente académico con Groq
 - Acceso contextual al contenido de la tesina
 - Ayuda con estructura, formato APA, redacción
 - Exclusivo para alumnos
@@ -46,7 +46,7 @@ Sistema web completo para la gestión de tesinas universitarias con roles de adm
 - **SQLite** - Base de datos
 - **JWT** - Autenticación
 - **bcrypt** - Encriptación de contraseñas
-- **Google Gemini API** - Chat asistente con IA
+- **Groq API** - Chat asistente con IA
 
 ### Frontend
 - **React 18** - Librería UI
@@ -93,7 +93,7 @@ DB_PATH=database.db
 JWT_SECRET_KEY=tu_clave_secreta_generada_con_secrets
 JWT_ACCESS_TOKEN_EXPIRES=3600
 JWT_REFRESH_TOKEN_EXPIRES=2592000
-GEMINI_API_KEY=tu_clave_de_google_gemini
+GROQ_API_KEY=tu_clave_de_groq
 ```
 
 **Generar JWT_SECRET_KEY:**
@@ -101,9 +101,12 @@ GEMINI_API_KEY=tu_clave_de_google_gemini
 python -c "import secrets; print(secrets.token_urlsafe(64))"
 ```
 
-**Obtener GEMINI_API_KEY:**
-- Ve a: https://aistudio.google.com/app/apikey
-- Crea una API key gratuita
+**Obtener GROQ_API_KEY:**
+- Ve a: https://console.groq.com/
+- Crea una cuenta gratuita
+- Ve a "API Keys" y genera una nueva key
+- Copiá la key (empieza con `gsk_`)
+
 ```powershell
 # Inicializar base de datos
 python database.py
@@ -200,7 +203,7 @@ repo-tesinas/
 
 ## Chat Asistente
 
-El chat asistente usa **Google Gemini** (gratuito) para:
+El chat asistente usa **Groq** (gratuito) para:
 
 - Revisar estructura y redacción
 - Sugerir mejoras en formato APA
@@ -209,8 +212,8 @@ El chat asistente usa **Google Gemini** (gratuito) para:
 - Dar feedback constructivo
 
 **Configuración:**
-1. Obtener API key en https://aistudio.google.com/app/apikey
-2. Agregarla al archivo `.env` como `GEMINI_API_KEY`
+1. Obtener API key en https://console.groq.com/keys
+2. Agregarla al archivo `.env` como `GROQ_API_KEY`
 
 ---
 
@@ -247,30 +250,6 @@ npm run preview          # Preview del build
 
 - El chat asistente requiere conexión a internet
 - Los archivos muy grandes (>10MB) pueden tardar en subir
-- La API de Gemini tiene límite de 15 requests/minuto (gratis)
-
----
-
-## Licencia
-
-Este proyecto fue desarrollado como parte de un trabajo universitario.
-
----
-
-## 👨‍💻 Autor
-
-**Clara Panella**
-- GitHub: 
-- Email: claragpanella@gmail.com
-
----
-
-## Soporte
-
-Si encontrás algún problema o tenés sugerencias:
-1. Abrí un issue en GitHub
-2. Contactame por email claragpanella@gmail.com
-
 ---
 
 **¡Gracias por usar el Sistema de Gestión de Tesinas!** 🎓

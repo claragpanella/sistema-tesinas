@@ -18,11 +18,13 @@ from routes.chat import chat_bp
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = config.SECRET_KEY
-app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10 MB máximo por archivo
+app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
+  
+# Configuración de CORS — tres orígenes permitidos
 CORS(app, origins=[
     "http://localhost:5173",
-    "https://sistema-tesinas.vercel.app",  # ← Cambiar por tu URL real de Vercel
-    "https://sistema-tesinas-*.vercel.app"  # ← Permite previews de Vercel
+    "https://sistema-tesinas.vercel.app", 
+    "https://sistema-tesinas-*.vercel.app" # previews
 ], supports_credentials=True)
 
 # Inicializa la base de datos
@@ -34,7 +36,7 @@ init_db()
 try:
     from seed_admin import crear_admin
     from seed_data import seed_database
-    from seed_pautas import cargar_pautas  # ← Agregar import
+    from seed_pautas import cargar_pautas
     from utils.db_utils import get_db
     
     print("🔄 Verificando base de datos...")
@@ -62,7 +64,7 @@ try:
         
         if count_pautas == 0:
             print("📚 Cargando pautas de ejemplo...")
-            cargar_pautas()  # ← Llamar función
+            cargar_pautas()
         else:
             print(f"✅ Base de datos tiene {count_pautas} pautas")
             

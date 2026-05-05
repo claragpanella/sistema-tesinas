@@ -53,7 +53,7 @@ def cargar_pautas():
         # =========================
         pautas = [
 
-            # ---- PROCEDIMIENTOS GENERALES ----
+            # PROCEDIMIENTOS GENERALES
             {
                 "categoria": "Procedimientos generales",
                 "titulo": "Carpeta compartida",
@@ -88,7 +88,7 @@ Ejemplo: LopezEduardo_2025-04-22_v05.pdf
                 "orden": 3
             },
 
-            # ---- FORMATO DEL DOCUMENTO ----
+            # FORMATO DEL DOCUMENTO
             {
                 "categoria": "Formato del documento",
                 "titulo": "Formato general",
@@ -109,7 +109,7 @@ Los pies de página deben estar presentes en el resto del documento.
                 "orden": 2
             },
 
-            # ---- ESTRUCTURA DEL TRABAJO ----
+            # ESTRUCTURA DEL TRABAJO
             {
                 "categoria": "Estructura del trabajo",
                 "titulo": "Apartados obligatorios",
@@ -140,7 +140,7 @@ Debe incluir logros, dificultades, cumplimiento de objetivos y aportes realizado
                 "orden": 2
             },
 
-            # ---- BIBLIOGRAFÍA ----
+            # BIBLIOGRAFÍA
             {
                 "categoria": "Bibliografía y normas APA",
                 "titulo": "Uso de normas APA",
@@ -152,7 +152,7 @@ Toda referencia en bibliografía debe haber sido citada en el texto.
                 "orden": 1
             },
 
-            # ---- IMPRESIÓN ----
+            # IMPRESIÓN
             {
                 "categoria": "Impresión y presentación",
                 "titulo": "Formato de impresión",
@@ -167,7 +167,7 @@ Se recomienda anillado metálico con tapas duras tipo alto impacto.
                 "orden": 1
             },
 
-            # ---- DEFENSA ----
+            # DEFENSA
             {
                 "categoria": "Defensa de la tesis",
                 "titulo": "Duración de la presentación",
@@ -191,7 +191,7 @@ Se recomienda no superar 10 a 15 diapositivas.
                 "orden": 2
             },
 
-            # ---- REDACCIÓN ----
+            # REDACCIÓN
             {
                 "categoria": "Recomendaciones de redacción",
                 "titulo": "Tiempos verbales",

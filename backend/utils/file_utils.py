@@ -24,13 +24,6 @@ def generate_unique_filename(original_filename):
 def save_file_safely(file, upload_folder):
     """
     Guarda un archivo de forma segura en el directorio especificado
-    
-    Args:
-        file: Objeto FileStorage de Flask
-        upload_folder: Carpeta donde guardar el archivo
-        
-    Returns:
-        str: Nombre del archivo guardado
     """
     os.makedirs(upload_folder, exist_ok=True)
     

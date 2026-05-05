@@ -59,7 +59,7 @@ def listar_pautas():
 # LISTAR CATEGORÍAS (AUTENTICADO)
 # =========================
 @pautas_bp.route("/categorias", methods=["GET"])
-@token_required  # ← Cualquier usuario autenticado
+@token_required
 def listar_categorias():
     try:
         with get_db() as conn:
@@ -90,7 +90,7 @@ def listar_categorias():
 # CREAR CATEGORÍA (SOLO ADMIN)
 # =========================
 @pautas_bp.route("/categorias", methods=["POST"])
-@admin_required  # ← Solo admin
+@admin_required
 def crear_categoria():
     try:
         data = request.json
@@ -129,7 +129,7 @@ def crear_categoria():
 # EDITAR CATEGORÍA (SOLO ADMIN)
 # =========================
 @pautas_bp.route("/categorias/<int:categoria_id>", methods=["PUT"])
-@admin_required  # ← Solo admin
+@admin_required
 def editar_categoria(categoria_id):
     try:
         data = request.json
@@ -179,7 +179,7 @@ def editar_categoria(categoria_id):
 # ELIMINAR CATEGORÍA (SOLO ADMIN)
 # =========================
 @pautas_bp.route("/categorias/<int:categoria_id>", methods=["DELETE"])
-@admin_required  # ← Solo admin
+@admin_required
 def eliminar_categoria(categoria_id):
     try:
         with get_db() as conn:
@@ -215,7 +215,7 @@ def eliminar_categoria(categoria_id):
 # LISTAR PAUTAS POR CATEGORÍA (AUTENTICADO)
 # =========================
 @pautas_bp.route("/categoria/<int:categoria_id>", methods=["GET"])
-@token_required  # ← Cualquier usuario autenticado
+@token_required
 def pautas_por_categoria(categoria_id):
     try:
         with get_db() as conn:
@@ -262,7 +262,7 @@ def pautas_por_categoria(categoria_id):
 # OBTENER UNA PAUTA (AUTENTICADO)
 # =========================
 @pautas_bp.route("/<int:pauta_id>", methods=["GET"])
-@token_required  # ← Cualquier usuario autenticado
+@token_required
 def obtener_pauta(pauta_id):
     try:
         with get_db() as conn:
@@ -296,7 +296,7 @@ def obtener_pauta(pauta_id):
 # CREAR NUEVA PAUTA (SOLO ADMIN)
 # =========================
 @pautas_bp.route("/", methods=["POST"])
-@admin_required  # ← Solo admin
+@admin_required
 def crear_pauta():
     try:
         data = request.json
@@ -338,7 +338,7 @@ def crear_pauta():
 # EDITAR PAUTA (SOLO ADMIN)
 # =========================
 @pautas_bp.route("/<int:pauta_id>", methods=["PUT"])
-@admin_required  # ← Solo admin
+@admin_required
 def editar_pauta(pauta_id):
     try:
         data = request.json
@@ -390,7 +390,7 @@ def editar_pauta(pauta_id):
 # ELIMINAR PAUTA (SOLO ADMIN)
 # =========================
 @pautas_bp.route("/<int:pauta_id>", methods=["DELETE"])
-@admin_required  # ← Solo admin
+@admin_required
 def eliminar_pauta(pauta_id):
     try:
         with get_db() as conn:

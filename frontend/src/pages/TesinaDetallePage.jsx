@@ -164,7 +164,7 @@ function ReentregaModal({ tesinaId, onClose, onSaved }) {
 }
 
 // =========================
-// Modal editar tesina (completo)
+// Modal editar tesina
 // =========================
 function EditarTesinaModal({ tesina, onClose, onSaved }) {
   const [tutores, setTutores] = useState([])
@@ -250,14 +250,14 @@ useEffect(() => {
 
     setLoading(true)
     try {
-      // 1. Actualizar datos generales
+      // Actualizar datos generales
       await api.put(`/tesinas/${tesina.id}`, {
         titulo: form.titulo,
         resumen: form.resumen,
         tutor_id: parseInt(form.tutor_id)
       })
 
-      // 2. Si hay archivo nuevo, actualizar archivo
+      // Si hay archivo nuevo, actualizar archivo
       if (file) {
         const formData = new FormData()
         formData.append('file', file)
@@ -395,7 +395,7 @@ useEffect(() => {
   )}
 </div>
 
-          {/* Archivo (opcional) */}
+          {/* Archivo */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Cambiar archivo (opcional)

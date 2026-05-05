@@ -88,7 +88,7 @@ Puedo ayudarte con estructura, referencias APA, redacción académica y revisió
 ¿En qué específicamente puedo ayudarte hoy?"""
 
 
-SYSTEM_PROMPT = """Sos un asistente académico especializado en tesinas universitarias argentinas.
+SYSTEM_PROMPT = """Sos Tesibot, un asistente académico especializado en tesinas universitarias argentinas.
 
 Tu rol es ayudar a estudiantes con:
 - Estructura y organización del trabajo
@@ -104,6 +104,11 @@ Características de tus respuestas:
 - Mantené un tono educativo y alentador
 - Si detectás errores, explicá por qué y cómo corregirlos
 
+Comportamiento adicional:
+- Podés referirte a vos mismo como "TesiBot" si es natural en la respuesta
+- Limitá tus respuestas exclusivamente a temas académicos, si el usuario realiza una consulta fuera de ese ámbito, 
+indicá de forma clara y breve que solo podés ayudar con temas académicos
+
 No inventes información. Si no tenés suficiente contexto, pedí más detalles."""
 
 def detectar_problemas_tesina(texto, titulo="", resumen=""):
@@ -116,7 +121,7 @@ def detectar_problemas_tesina(texto, titulo="", resumen=""):
     # Convertir a minúsculas para búsquedas
     texto_lower = texto.lower()
     
-    # 1. Verificar largo del documento
+    # Verificar largo del documento
     palabras = len(texto.split())
     if palabras < 5000:
         problemas.append({
@@ -135,7 +140,7 @@ def detectar_problemas_tesina(texto, titulo="", resumen=""):
             "sugerencia": "Revisá que no haya contenido redundante o innecesario."
         })
     
-    # 2. Buscar secciones obligatorias
+    # Buscar secciones obligatorias
     secciones_requeridas = {
         "introducción": ["introduccion", "introducción"],
         "marco teórico": ["marco teórico", "marco teorico", "fundamentación teórica", "fundamentacion teorica"],
@@ -156,7 +161,7 @@ def detectar_problemas_tesina(texto, titulo="", resumen=""):
                 "sugerencia": f"Toda tesina debe incluir una sección de {seccion}. Agregala antes de continuar."
             })
     
-    # 3. Verificar citas en formato APA
+    # Verificar citas en formato APA
     # Patrón: (Apellido, Año) o (Apellido et al., Año)
     import re
     citas_apa = re.findall(r'\([A-ZÁ-Ú][a-zá-ú]+(?:\s+et\s+al\.)?,\s*\d{4}\)', texto)
@@ -170,7 +175,7 @@ def detectar_problemas_tesina(texto, titulo="", resumen=""):
             "sugerencia": "Asegurate de citar correctamente en formato APA: (Autor, Año). Agregá más referencias bibliográficas."
         })
     
-    # 4. Verificar uso de primera persona (debe evitarse en escritura académica)
+    # Verificar uso de primera persona
     primera_persona = re.findall(r'\b(yo|mi|mis|nosotros|nuestro|nuestra|nuestros|nuestras)\b', texto_lower)
     
     if len(primera_persona) > 10:
@@ -182,7 +187,7 @@ def detectar_problemas_tesina(texto, titulo="", resumen=""):
             "sugerencia": "En escritura académica se recomienda usar tercera persona o voz pasiva. Ejemplo: 'Se realizó el análisis' en vez de 'Yo realicé el análisis'."
         })
     
-    # 5. Verificar párrafos muy largos
+    # Verificar párrafos muy largos
     parrafos = texto.split('\n\n')
     parrafos_largos = [p for p in parrafos if len(p.split()) > 200]
     
@@ -195,7 +200,7 @@ def detectar_problemas_tesina(texto, titulo="", resumen=""):
             "sugerencia": "Dividí los párrafos largos en unidades más pequeñas para mejorar la legibilidad. Un párrafo ideal tiene entre 80-120 palabras."
         })
     
-    # 6. Verificar palabras repetidas excesivamente
+    # Verificar palabras repetidas
     palabras_comunes = texto_lower.split()
     from collections import Counter
     contador = Counter(palabras_comunes)
@@ -218,7 +223,7 @@ def detectar_problemas_tesina(texto, titulo="", resumen=""):
             "sugerencia": "Usá sinónimos para mejorar la variedad léxica. Herramientas: wordreference.com, sinónimos RAE."
         })
     
-    # 7. Verificar que el título esté presente en el documento
+    # Verificar que el título esté presente en el documento
     if titulo and titulo.lower() not in texto_lower[:1000]:
         problemas.append({
             "tipo": "warning",
@@ -228,7 +233,7 @@ def detectar_problemas_tesina(texto, titulo="", resumen=""):
             "sugerencia": "Asegurate de incluir el título completo en la portada y al inicio de la introducción."
         })
     
-    # 8. Verificar figuras/tablas sin referencia
+    # Verificar figuras/tablas sin referencia
     tiene_figuras = bool(re.search(r'figura\s+\d+|fig\.\s+\d+|gráfico\s+\d+', texto_lower))
     tiene_tablas = bool(re.search(r'tabla\s+\d+|cuadro\s+\d+', texto_lower))
     
@@ -242,8 +247,7 @@ def detectar_problemas_tesina(texto, titulo="", resumen=""):
                 "sugerencia": "Todas las figuras y tablas deben ser referenciadas en el texto. Ejemplo: 'Como se observa en la Figura 1...'"
             })
     
-    # 9. Verificar introducción muy corta
-    # Buscar el texto entre "introducción" y la siguiente sección
+    # Verificar introducción muy corta
     intro_match = re.search(r'introducción(.*?)(marco teórico|metodología|capítulo)', texto_lower, re.DOTALL)
     if intro_match:
         intro_palabras = len(intro_match.group(1).split())
@@ -256,10 +260,10 @@ def detectar_problemas_tesina(texto, titulo="", resumen=""):
                 "sugerencia": "Una introducción completa debe tener al menos 500-800 palabras. Debe incluir: contexto, problema, objetivos, justificación y estructura del trabajo."
             })
     
-    # 10. Verificar referencias sin formato APA en la sección de bibliografía
+    # Verificar referencias sin formato APA en la sección de bibliografía
     biblio_match = re.search(r'(referencias|bibliografía)(.*)', texto_lower, re.DOTALL)
     if biblio_match:
-        biblio_texto = biblio_match.group(2)[:2000]  # Primeras 2000 chars
+        biblio_texto = biblio_match.group(2)[:2000]  # Primeras 2000
         
         # Verificar si hay URLs sin formato
         urls_sin_formato = re.findall(r'http[s]?://[^\s]+', biblio_texto)
@@ -288,14 +292,14 @@ def chat_asistente():
         if not user_message:
             return jsonify({"error": "Mensaje vacío"}), 400
 
-        # ── Nombre del usuario ────────────────────────────────────────────
+        # Nombre del usuario
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT nombre FROM usuarios WHERE id = ?", (alumno_id,))
             row = cursor.fetchone()
             nombre_usuario = row['nombre'].split()[0] if row else "estudiante"  # solo el primer nombre
 
-        # ── Contexto de la tesina ──────────────────────────────────────────
+        # Contexto de la tesina
         tesina_titulo  = None
         tesina_context = ""
         if tesina_id:
@@ -326,7 +330,7 @@ def chat_asistente():
             + (f"\n\n{tesina_context}" if tesina_context else "")
         )
 
-        # ── Historial desde la BD ──────────────────────────────────────────
+        # Historial desde la BD
         # Groq usa formato OpenAI: [{role: "user"|"assistant"|"system", content: str}]
         groq_messages = [{"role": "system", "content": system_instruction}]
 
@@ -351,7 +355,7 @@ def chat_asistente():
 
         groq_messages.append({"role": "user", "content": user_message})
 
-        # ── Llamada a Groq ─────────────────────────────────────────────────
+        # Llamada a Groq
         response_text = None
         mode = "mock"
 
@@ -384,7 +388,7 @@ def chat_asistente():
         if response_text is None:
             response_text = get_mock_response(user_message, tesina_titulo)
 
-        # ── Guardar en BD ──────────────────────────────────────────────────
+        # Guardar en BD
         with get_db() as conn:
             cursor = conn.cursor()
 

@@ -185,7 +185,6 @@ export function ChatAsistentePage() {
     setNuevoTitulo('')
   }
 
-  // Auto-scroll
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
@@ -486,7 +485,7 @@ const analizarTesina = async () => {
 {/* Mensajes */}
 <div className="flex-1 overflow-y-auto p-6 space-y-4">
   
-  {/* Panel de análisis (si está activo) - AHORA DENTRO */}
+  {/* Panel de análisis (si está activo) */}
   {mostrarAnalisis && analisisProblemas && (
     <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm mb-4">
       <div className="flex items-center justify-between mb-4">
@@ -584,7 +583,7 @@ const analizarTesina = async () => {
     </div>
   )}
 
-  {/* Área de mensajes/sugerencias - CONTINÚA NORMAL */}
+  {/* Área de mensajes/sugerencias */}
             {messages.length === 0 && !mostrarAnalisis ? (
               <div className="h-full flex flex-col items-center justify-center">
                 <Bot className="w-16 h-16 text-indigo-400 mb-4" />

@@ -12,7 +12,7 @@ tutores_bp = Blueprint("tutores", __name__)
 # LISTAR TUTORES ACTIVOS (PÚBLICO - para formularios)
 # =========================
 @tutores_bp.route("/tutores", methods=["GET"])
-@token_required  # ← Solo requiere estar autenticado
+@token_required
 def listar_tutores():
     try:
         with get_db() as conn:
@@ -130,7 +130,7 @@ def listar_tutores_admin():
 # CREAR TUTOR (SOLO ADMIN)
 # =========================
 @tutores_bp.route("/admin/tutores", methods=["POST"])
-@admin_required  # ← Solo admin
+@admin_required
 def crear_tutor():
     try:
         data = request.json
@@ -175,7 +175,7 @@ def crear_tutor():
 # OBTENER UN TUTOR (SOLO ADMIN)
 # =========================
 @tutores_bp.route("/admin/tutores/<int:tutor_id>", methods=["GET"])
-@admin_required  # ← Solo admin
+@admin_required
 def obtener_tutor(tutor_id):
     try:
         with get_db() as conn:
@@ -208,7 +208,7 @@ def obtener_tutor(tutor_id):
 # EDITAR TUTOR (SOLO ADMIN)
 # =========================
 @tutores_bp.route("/admin/tutores/<int:tutor_id>", methods=["PUT"])
-@admin_required  # ← Solo admin
+@admin_required
 def editar_tutor(tutor_id):
     try:
         data = request.json
@@ -253,7 +253,7 @@ def editar_tutor(tutor_id):
 # ACTIVAR / DESACTIVAR TUTOR (SOLO ADMIN)
 # =========================
 @tutores_bp.route("/admin/tutores/<int:tutor_id>/estado", methods=["PUT"])
-@admin_required  # ← Solo admin
+@admin_required
 def cambiar_estado_tutor(tutor_id):
     try:
         data = request.json
@@ -281,10 +281,6 @@ def cambiar_estado_tutor(tutor_id):
     except Exception as e:
         return jsonify({"error": f"Error al cambiar estado: {str(e)}"}), 500
 
-
-# =========================
-# ELIMINAR TUTOR (SOLO ADMIN)
-# =========================
 # =========================
 # ELIMINAR TUTOR PERMANENTEMENTE (SOLO ADMIN)
 # =========================
@@ -295,7 +291,7 @@ def eliminar_tutor(tutor_id):
         with get_db() as conn:
             cursor = conn.cursor()
 
-            # 1. Verificar si tiene tesinas vinculadas
+            # Verificar si tiene tesinas vinculadas
             cursor.execute("""
                 SELECT COUNT(*)
                 FROM tesinas
@@ -307,8 +303,7 @@ def eliminar_tutor(tutor_id):
                     "error": "No se puede eliminar el tutor: tiene tesinas asignadas. Primero reasigna esas tesinas."
                 }), 400
 
-            # 2. Ejecutar el borrado permanente
-            # Usamos DELETE en lugar de UPDATE
+            # Ejecutar el borrado permanente
             cursor.execute("""
                 DELETE FROM usuarios
                 WHERE id = ? 
@@ -323,7 +318,7 @@ def eliminar_tutor(tutor_id):
         return jsonify({"message": "Tutor eliminado permanentemente de la base de datos"})
     
     except Exception as e:
-        # En caso de error de base de datos (por ejemplo, restricciones de integridad)
+        # En caso de error de base de datos
         return jsonify({"error": f"Error al eliminar tutor: {str(e)}"}), 500
     
 # =========================
@@ -380,7 +375,7 @@ def tesinas_por_tutor():
 # REVISAR TESINA (TUTOR o ADMIN)
 # =========================
 @tutores_bp.route("/tutor/versiones/<int:version_id>/revisar", methods=["POST"])
-@tutor_required  # ← Tutores y admin
+@tutor_required 
 def revisar_version(version_id):
     try:
         data = request.json

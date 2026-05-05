@@ -13,7 +13,7 @@ tesinas_bp = Blueprint("tesinas", __name__)
 
 
 # =========================
-# Subir tesina (SOLO ALUMNOS)
+# SUBIR TESINA (SOLO ALUMNOS)
 # =========================
 @tesinas_bp.route("/upload", methods=["POST"])
 @alumno_required
@@ -31,7 +31,6 @@ def upload_tesina():
         with get_db() as conn:
             cursor = conn.cursor()
 
-            # ← AGREGAR ESTA VALIDACIÓN
             # Verificar si el alumno ya tiene una tesina
             cursor.execute("""
                 SELECT id FROM tesinas WHERE alumno_id = ?
@@ -90,7 +89,7 @@ def upload_tesina():
         return jsonify({"error": f"Error al subir tesina: {str(e)}"}), 500
 
 # =========================
-# Listar tesinas (AUTENTICADO)
+# LISTAR TESINAS (AUTENTICADO)
 # =========================
 @tesinas_bp.route("/tesinas", methods=["GET"])
 @token_required
@@ -167,7 +166,7 @@ def list_tesinas():
         return jsonify({"error": f"Error al listar tesinas: {str(e)}"}), 500
     
 # =========================
-# Obtener una tesina por ID
+# OBTENER UNA TESINA POR ID
 # =========================
 @tesinas_bp.route("/tesinas/<int:tesina_id>", methods=["GET"])
 @token_required
@@ -212,10 +211,10 @@ def get_tesina(tesina_id):
         return jsonify({"error": f"Error al obtener tesina: {str(e)}"}), 500
 
 # =========================
-# Cambiar estado de versión (TUTOR)
+# CAMBIAR ESTADO DE VERSION (TUTOR)
 # =========================
 @tesinas_bp.route("/tutor/versiones/<int:version_id>/estado", methods=["POST"])
-@tutor_required  # ← Solo tutores
+@tutor_required 
 def cambiar_estado_version(version_id):
     try:
         estado = request.json.get("estado")
@@ -258,10 +257,10 @@ def cambiar_estado_version(version_id):
 
 
 # =========================
-# Guardar observaciones (TUTOR)
+# GUARDAR OBSERVACIONES (TUTOR)
 # =========================
 @tesinas_bp.route("/tutor/versiones/<int:version_id>/observaciones", methods=["POST"])
-@tutor_required  # ← Solo tutores
+@tutor_required
 def guardar_observaciones_version(version_id):
     try:
         observaciones = request.json.get("observaciones", "")
@@ -300,7 +299,7 @@ def guardar_observaciones_version(version_id):
         return jsonify({"error": f"Error al guardar observaciones: {str(e)}"}), 500
     
 # =========================
-# Editar archivo tesina (ALUMNO)
+# EDITAR ARCHIVO TESINA (ALUMNO)
 # =========================
 @tesinas_bp.route("/tesinas/<int:tesina_id>/archivo", methods=["PUT"])
 @alumno_required
@@ -382,7 +381,7 @@ def reemplazar_archivo_tesina(tesina_id):
         }), 500
 
 # =========================
-# Editar tesina (ALUMNO)
+# EDITAR TESINA (ALUMNO)
 # =========================
 @tesinas_bp.route("/tesinas/<int:tesina_id>", methods=["PUT"])
 @alumno_required
@@ -458,10 +457,10 @@ def editar_tesina(tesina_id):
             "error": f"Error al actualizar tesina: {str(e)}"
         }), 500
 # =========================
-# Reentregar tesina (ALUMNO)
+# REENTREGAR TESINA (ALUMNO)
 # =========================
 @tesinas_bp.route("/tesinas/<int:tesina_id>/reentrega", methods=["POST"])
-@alumno_required  # ← Solo alumnos
+@alumno_required
 def reentregar_tesina(tesina_id):
     try:
         file = request.files.get("file")
@@ -527,10 +526,10 @@ def reentregar_tesina(tesina_id):
 
 
 # =========================
-# Historial de versiones (AUTENTICADO)
+# HISTORIAL DE VERSIONES (AUTENTICADO)
 # =========================
 @tesinas_bp.route("/tesinas/<int:tesina_id>/versions", methods=["GET"])
-@token_required  # ← Cualquier usuario autenticado
+@token_required
 def obtener_versiones_tesina(tesina_id):
     try:
         with get_db() as conn:
@@ -576,7 +575,7 @@ def obtener_versiones_tesina(tesina_id):
         return jsonify({"error": f"Error al obtener versiones: {str(e)}"}), 500
 
 # =========================
-# Eliminar tesina (ADMIN)
+# ELIMINAR TESINA (ADMIN)
 # =========================
 @tesinas_bp.route("/tesinas/<int:tesina_id>", methods=["DELETE"])
 @admin_required

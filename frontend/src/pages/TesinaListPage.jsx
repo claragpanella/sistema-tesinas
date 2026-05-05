@@ -155,7 +155,7 @@ export function TesinaListPage() {
     )
   }
 
-  // VISTA PARA ADMIN/TUTOR (listado completo)
+  // VISTA PARA ADMIN/TUTOR
   return (
     <Layout>
       {/* Header */}

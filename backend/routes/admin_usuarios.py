@@ -28,7 +28,6 @@ def listar_usuarios():
         
         where_clause, params = build_where_clause(filters, allowed_filters)
         
-        # ← CAMBIAR: Filtrar solo alumnos (no admins ni tutores)
         where_clause = f"rol = 'alumno' AND ({where_clause})"
         
         with get_db() as conn:
@@ -213,7 +212,7 @@ def editar_usuario(usuario_id):
 # ACTIVAR / DESACTIVAR USUARIO (SOLO ADMIN)
 # =========================
 @admin_usuarios_bp.route("/admin/usuarios/<int:usuario_id>/estado", methods=["PUT"])
-@admin_required  # ← PROTECCIÓN JWT
+@admin_required 
 def cambiar_estado_usuario(usuario_id):
     try:
         data = request.json
@@ -313,7 +312,7 @@ def eliminar_usuario(usuario_id):
 # CAMBIAR CONTRASEÑA (SOLO ADMIN)
 # =========================
 @admin_usuarios_bp.route("/admin/usuarios/<int:usuario_id>/password", methods=["PUT"])
-@admin_required  # ← PROTECCIÓN JWT
+@admin_required
 def cambiar_password(usuario_id):
     try:
         data = request.json

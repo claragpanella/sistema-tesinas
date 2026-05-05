@@ -135,7 +135,7 @@ def preview_archivo_tesina(filename):
 # Vista previa de ejemplo (AUTENTICADO)
 # =========================
 @files_bp.route("/preview/uploads_ejemplos/<path:filename>")
-@token_required  # ← Cualquier usuario autenticado
+@token_required
 def preview_archivo_ejemplo(filename):
     try:
         filepath = os.path.join(UPLOAD_EJEMPLOS_FOLDER, filename)

@@ -13,43 +13,37 @@ auth_bp = Blueprint("auth", __name__)
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
-    """
-    Endpoint de login que retorna tokens JWT
-    """
+    """Endpoint de login que retorna tokens JWT"""
     try:
         data = request.json
 
         email = data.get("email")
         password = data.get("password")
 
+        # Validar campos presentes
         if not email or not password:
             return jsonify({"error": "Faltan datos"}), 400
 
         with get_db() as conn:
             cursor = conn.cursor()
-
-            cursor.execute("""
-                SELECT id, nombre, email, rol, activo, password
-                FROM usuarios
-                WHERE email = ?
-            """, (email,))
-
+        # Buscar usuario en la BD
+            cursor.execute("""SELECT id, nombre, email, rol, activo, password FROM usuarios WHERE email = ?""", (email,))
             user = cursor.fetchone()
 
         if not user:
             return jsonify({"error": "Credenciales inválidas"}), 401
 
-        # Verificar contraseña
+        # Verificar contraseña con bcrypt
         if not verify_password(password, user["password"]):
             return jsonify({"error": "Credenciales inválidas"}), 401
 
-        # ← VALIDACIÓN: Verificar que el usuario esté activo
+        # Verificar que el usuario esté activo
         if user["activo"] == 0:
             return jsonify({
                 "error": "Tu cuenta está inactiva. Contactá al administrador para activarla."
             }), 403
 
-        # Generar tokens
+        # Generar tokens JWT
         access_token = generate_access_token(user["id"], user["rol"])
         refresh_token = generate_refresh_token(user["id"])
 
@@ -199,8 +193,6 @@ def register():
                 VALUES (?, ?, ?, ?, 0)
             """, (nombre, email, hashed, rol))
 
-
-        # NO generar tokens ni hacer login automático
         # El usuario debe esperar a ser activado por un admin
         
         return jsonify({

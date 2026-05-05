@@ -99,7 +99,7 @@ function AlumnoDashboard({ user }) {
       path: '/tesinas',
       color: 'blue',
     },
-    // ← AGREGAR ESTO
+
     {
       icon: MessageSquare,
       title: 'Chat Asistente',

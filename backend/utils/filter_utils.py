@@ -3,9 +3,6 @@ from flask import request
 def get_filter_params():
     """
     Obtiene y procesa los parámetros de filtro de la request
-    
-    Returns:
-        dict: Diccionario con los parámetros de filtro
     """
     filters = {}
     
@@ -44,7 +41,7 @@ def get_filter_params():
 
 
 # Whitelist de columnas válidas permitidas en cláusulas WHERE.
-# Solo estas columnas (con o sin prefijo de tabla) pueden usarse en filtros.
+# Solo estas columnas pueden usarse en filtros.
 _ALLOWED_COLUMNS = {
     'activo', 'anio', 'estado', 'tutor_id', 'rol', 'alumno_id',
     'nombre', 'email',

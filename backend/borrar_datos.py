@@ -7,15 +7,15 @@ def limpiar_tesinas():
     cursor = conn.cursor()
 
     try:
-        # 1. Borramos primero las versiones (por la relación de clave foránea)
+        # Borramos primero las versiones (por la relación de clave foránea)
         cursor.execute("DELETE FROM versiones_tesinas")
         print(f"✅ Se eliminaron {cursor.rowcount} versiones de tesinas.")
 
-        # 2. Borramos todas las tesinas
+        # Borramos todas las tesinas
         cursor.execute("DELETE FROM tesinas")
         print(f"✅ Se eliminaron {cursor.rowcount} tesinas.")
 
-        # 3. Opcional: Reiniciar los contadores de ID (para que la próxima empiece en 1)
+        # Opcional: Reiniciar los contadores de ID (para que la próxima empiece en 1)
         cursor.execute("DELETE FROM sqlite_sequence WHERE name='tesinas'")
         cursor.execute("DELETE FROM sqlite_sequence WHERE name='versiones_tesinas'")
 

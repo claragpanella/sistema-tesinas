@@ -4,14 +4,6 @@ from math import ceil
 def paginate(query_result, default_per_page=10, max_per_page=100):
     """
     Pagina los resultados de una consulta
-    
-    Args:
-        query_result: Lista de resultados de la consulta
-        default_per_page: Cantidad por defecto de items por página
-        max_per_page: Máximo de items permitidos por página
-        
-    Returns:
-        dict: Objeto con los datos paginados y metadatos
     """
     # Obtener parámetros de paginación de la query string
     page = request.args.get('page', 1, type=int)
@@ -59,9 +51,6 @@ def paginate(query_result, default_per_page=10, max_per_page=100):
 def get_pagination_params():
     """
     Obtiene y valida los parámetros de paginación de la request
-    
-    Returns:
-        tuple: (limit, offset)
     """
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
@@ -85,15 +74,6 @@ def get_pagination_params():
 def create_pagination_response(items, total_count, page=None, per_page=None):
     """
     Crea una respuesta paginada desde una query con LIMIT/OFFSET
-    
-    Args:
-        items: Lista de items de la página actual
-        total_count: Total de items en la base de datos
-        page: Número de página (si None, se toma de request)
-        per_page: Items por página (si None, se toma de request)
-        
-    Returns:
-        dict: Objeto con datos paginados y metadatos
     """
     if page is None:
         page = request.args.get('page', 1, type=int)

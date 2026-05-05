@@ -7,13 +7,6 @@ import config
 def generate_access_token(user_id, user_role):
     """
     Genera un token de acceso JWT
-    
-    Args:
-        user_id: ID del usuario
-        user_role: Rol del usuario (admin, tutor, alumno)
-        
-    Returns:
-        str: Token JWT
     """
     payload = {
         'user_id': user_id,
@@ -29,12 +22,6 @@ def generate_access_token(user_id, user_role):
 def generate_refresh_token(user_id):
     """
     Genera un token de refresco JWT
-    
-    Args:
-        user_id: ID del usuario
-        
-    Returns:
-        str: Token JWT de refresco
     """
     payload = {
         'user_id': user_id,
@@ -49,12 +36,6 @@ def generate_refresh_token(user_id):
 def decode_token(token):
     """
     Decodifica y valida un token JWT
-    
-    Args:
-        token: Token JWT
-        
-    Returns:
-        dict: Payload del token o None si es inválido
     """
     try:
         payload = jwt.decode(token, config.JWT_SECRET_KEY, algorithms=[config.JWT_ALGORITHM])

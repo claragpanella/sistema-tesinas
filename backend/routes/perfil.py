@@ -6,7 +6,7 @@ from utils.jwt_utils import token_required
 perfil_bp = Blueprint('perfil', __name__)
 
 # =========================
-# Actualizar nombre
+# ACTUALIZAR NOMBRE
 # =========================
 @perfil_bp.route("/perfil", methods=["PUT"])
 @token_required
@@ -34,7 +34,7 @@ def actualizar_perfil():
 
 
 # =========================
-# Cambiar contraseña propia
+# CAMBIAR CONTRASEÑA PROPIA
 # =========================
 @perfil_bp.route("/perfil/password", methods=["PUT"])
 @token_required
