@@ -100,15 +100,16 @@ def init_db():
     # Conversaciones del chat
     # =========================
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS conversaciones (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            alumno_id INTEGER NOT NULL,
-            tesina_id INTEGER,
-            titulo TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (alumno_id) REFERENCES usuarios(id),
-            FOREIGN KEY (tesina_id) REFERENCES tesinas(id) ON DELETE SET NULL
+    CREATE TABLE IF NOT EXISTS conversaciones (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        usuario_id INTEGER NOT NULL,
+        rol_usuario TEXT NOT NULL CHECK(rol_usuario IN ('alumno', 'tutor')),
+        tesina_id INTEGER,
+        titulo TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
+        FOREIGN KEY (tesina_id) REFERENCES tesinas(id) ON DELETE SET NULL
         )
     """)
 

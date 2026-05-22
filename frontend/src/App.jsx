@@ -110,7 +110,7 @@ function App() {
           <Route
             path="/chat"
             element={
-              <ProtectedRoute allowedRoles={['alumno']}>
+              <ProtectedRoute allowedRoles={['alumno', 'tutor']}>
                 <ChatAsistentePage />
               </ProtectedRoute>
             }

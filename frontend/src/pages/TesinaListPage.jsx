@@ -241,12 +241,16 @@ export function TesinaListPage() {
                     <div className="flex-1 min-w-0">
 
                       {/* Título y estado */}
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <h3 className="font-semibold text-gray-900 truncate">
-                          {tesina.titulo || 'Sin título'}
-                        </h3>
-                        <Badge text={tesina.estado} />
-                      </div>
+{/* Título y estado */}
+<div className="flex items-center gap-2 flex-wrap mb-1">
+  <h3 className="font-semibold text-gray-900 truncate">
+    {tesina.titulo || 'Sin título'}
+  </h3>
+  <Badge 
+    estado_alumno={tesina.estado_alumno} 
+    estado_tutor={tesina.estado_tutor} 
+  />
+</div>
 
                       {/* Alumno y tutor */}
                       <div className="flex items-center gap-3 mb-2 flex-wrap">

@@ -74,7 +74,7 @@ function AlumnoDashboard({ user }) {
       <>
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-gray-900">
-            ¡Bienvenido, {user?.nombre}! 👋
+            ¡Bienvenido, {user?.nombre}!
           </h2>
           <p className="text-gray-600 mt-1">
             Cargando...
@@ -134,7 +134,7 @@ function AlumnoDashboard({ user }) {
     <>
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-gray-900">
-          ¡Bienvenido, {user?.nombre}! 👋
+          ¡Bienvenido, {user?.nombre}!
         </h2>
         <p className="text-gray-600 mt-1">
           ¿Qué querés hacer hoy?
@@ -142,7 +142,7 @@ function AlumnoDashboard({ user }) {
         {tieneTesina && (
           <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-700">
-              ℹ️ Ya tenés una tesina registrada. Para enviar correcciones, 
+              Ya tenés una tesina registrada. Para enviar correcciones, 
               entrá a <span className="font-semibold">"Mis Tesinas"</span> y 
               usá el botón <span className="font-semibold">"Reenviar versión"</span>.
             </p>
@@ -169,6 +169,13 @@ function TutorDashboard({ user }) {
       subtitle: 'Revisar trabajos asignados',
       path: '/tutor/tesinas',
       color: 'blue',
+    },
+    {
+      icon: MessageSquare,
+      title: 'Chat Asistente',
+      subtitle: 'Revisar tesinas con IA',
+      path: '/chat',
+      color: 'green',
     },
     {
       icon: BookOpen,
@@ -199,7 +206,7 @@ function TutorDashboard({ user }) {
     <>
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-gray-900">
-          ¡Bienvenido, {user?.nombre}! 👋
+          ¡Bienvenido, {user?.nombre}!
         </h2>
         <p className="text-gray-600 mt-1">
           Panel del tutor

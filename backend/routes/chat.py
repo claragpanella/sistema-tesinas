@@ -1,45 +1,88 @@
-from flask import Blueprint, request, jsonify
-from utils.db_utils import get_db
-from utils.jwt_utils import alumno_required
-from config import GROQ_API_KEY
+import json
+import logging
 import os
-import traceback
 import re
+import traceback
+
+from flask import Blueprint, jsonify, request
+
+from config import GROQ_API_KEY
+from utils.db_utils import get_db
+from utils.jwt_utils import alumno_o_tutor_required
+
+# ─── Logging ──────────────────────────────────────────────────────────────────
+logger = logging.getLogger(__name__)
 
 chat_bp = Blueprint('chat', __name__)
 
+# ─── Constantes ───────────────────────────────────────────────────────────────
+# Palabras vacías excluidas del análisis de repetición (constante a nivel módulo)
+HISTORIAL_LIMITE = 20  # mensajes del historial enviados a Groq
+
+# ─── Cliente Groq ─────────────────────────────────────────────────────────────
+# Inicializado en None para evitar NameError si la importación falla
+client = None
 USE_GROQ = bool(GROQ_API_KEY)
 
 if USE_GROQ:
     try:
         from groq import Groq
         client = Groq(api_key=GROQ_API_KEY)
-        print("✓ Cliente Groq configurado")
-    except Exception as e:
-        print(f"❌ Error configurando cliente Groq: {e}")
-        traceback.print_exc()
+        logger.info("Cliente Groq configurado correctamente")
+    except Exception:
+        logger.exception("Error configurando cliente Groq; se usará modo mock")
         USE_GROQ = False
 
 
-def extract_text_from_file(filepath):
+def get_groq_client():
+    """Retorna el cliente Groq si está disponible, None si no."""
+    return client if USE_GROQ else None
+
+
+# ─── Extracción de texto ──────────────────────────────────────────────────────
+# Los imports de PyPDF2 y docx se hacen al nivel de módulo para evitar
+# imports repetidos dentro de la función (aunque Python los cachea, es
+# mala práctica y dificulta la detección de dependencias faltantes).
+try:
+    import PyPDF2
+    _PYPDF2_OK = True
+except ImportError:
+    _PYPDF2_OK = False
+    logger.warning("PyPDF2 no disponible; no se podrán leer PDFs")
+
+try:
+    import docx as _docx_module
+    _DOCX_OK = True
+except ImportError:
+    _DOCX_OK = False
+    logger.warning("python-docx no disponible; no se podrán leer archivos .docx")
+
+
+def extract_text_from_file(filepath: str) -> str | None:
+    """Extrae texto plano de un PDF o DOCX. Retorna None si falla."""
     try:
-        ext = filepath.split('.')[-1].lower()
+        ext = filepath.rsplit('.', 1)[-1].lower()
         if ext == 'pdf':
-            import PyPDF2
-            with open(filepath, 'rb') as file:
-                reader = PyPDF2.PdfReader(file)
-                return "".join([page.extract_text() or "" for page in reader.pages])
-        elif ext in ['docx', 'doc']:
-            import docx
-            doc = docx.Document(filepath)
-            return "\n".join([p.text for p in doc.paragraphs])
+            if not _PYPDF2_OK:
+                logger.error("PyPDF2 no instalado; no se puede leer el PDF")
+                return None
+            with open(filepath, 'rb') as f:
+                reader = PyPDF2.PdfReader(f)
+                return "".join(page.extract_text() or "" for page in reader.pages)
+        elif ext in ('docx', 'doc'):
+            if not _DOCX_OK:
+                logger.error("python-docx no instalado; no se puede leer el DOCX")
+                return None
+            doc = _docx_module.Document(filepath)
+            return "\n".join(p.text for p in doc.paragraphs)
         return None
-    except Exception as e:
-        print(f"Error extrayendo archivo: {e}")
+    except Exception:
+        logger.exception("Error extrayendo texto de %s", filepath)
         return None
 
 
-def get_mock_response(user_message, tesina_titulo=None):
+# ─── Respuesta mock (fallback sin Groq) ──────────────────────────────────────
+def get_mock_response(user_message: str, tesina_titulo: str | None = None) -> str:
     msg_lower = user_message.lower()
 
     if 'estructura' in msg_lower or 'organiz' in msg_lower:
@@ -60,7 +103,7 @@ def get_mock_response(user_message, tesina_titulo=None):
 
 ¿Querés que revise alguna sección específica?"""
 
-    elif 'apa' in msg_lower or 'referencia' in msg_lower or 'bibliograf' in msg_lower or 'cita' in msg_lower:
+    elif any(k in msg_lower for k in ('apa', 'referencia', 'bibliograf', 'cita')):
         return """📚 **Guía rápida de formato APA 7ma edición:**
 
 **LIBROS:**
@@ -79,18 +122,25 @@ Apellido, N. (Año, día mes). Título del artículo. Nombre del sitio. URL
 
 ¿Necesitás ayuda con alguna referencia específica?"""
 
-    else:
-        contexto_msg = f"\n\n📄 Estoy analizando tu tesina '{tesina_titulo}'" if tesina_titulo else ""
-        return f"""¡Hola! Soy tu asistente académico.{contexto_msg}
+    contexto_msg = f"\n\n📄 Estoy analizando tu tesina '{tesina_titulo}'" if tesina_titulo else ""
+    return (
+        f"¡Hola! Soy tu asistente académico.{contexto_msg}\n\n"
+        "Puedo ayudarte con estructura, referencias APA, redacción académica y revisión de secciones.\n\n"
+        "¿En qué específicamente puedo ayudarte hoy?"
+    )
 
-Puedo ayudarte con estructura, referencias APA, redacción académica y revisión de secciones.
 
-¿En qué específicamente puedo ayudarte hoy?"""
+# ─── System prompts ───────────────────────────────────────────────────────────
+_BASE_INSTRUCCIONES = """Usá español rioplatense (vos, querés, tenés).
+Limitá tus respuestas exclusivamente a temas académicos. Si el usuario consulta algo fuera de ese ámbito, indicalo de forma clara y breve.
+No inventes información. Si no tenés suficiente contexto, pedí más detalles."""
 
 
-SYSTEM_PROMPT = """Sos Tesibot, un asistente académico especializado en tesinas universitarias argentinas.
+def get_system_prompt(user_role: str) -> str:
+    if user_role == 'alumno':
+        return f"""Sos TesiBot, un asistente académico especializado en tesinas universitarias argentinas.
 
-Tu rol es ayudar a estudiantes con:
+Tu rol es ayudar al alumno con:
 - Estructura y organización del trabajo
 - Formato APA 7ma edición para referencias y citas
 - Redacción académica clara, formal y coherente
@@ -98,280 +148,258 @@ Tu rol es ayudar a estudiantes con:
 - Sugerencias constructivas, específicas y educativas
 
 Características de tus respuestas:
-- Usá español rioplatense (vos, querés, tenés)
-- Sé claro, específico y constructivo
-- Proporcioná ejemplos concretos cuando sea posible
-- Mantené un tono educativo y alentador
-- Si detectás errores, explicá por qué y cómo corregirlos
+- Tono educativo, alentador y paciente
+- Cuando detectés un error, explicá por qué es un problema y cómo corregirlo
+- Proporcioná ejemplos concretos siempre que sea posible
+- Podés referirte a vos mismo como "TesiBot" si es natural
 
-Comportamiento adicional:
-- Podés referirte a vos mismo como "TesiBot" si es natural en la respuesta
-- Limitá tus respuestas exclusivamente a temas académicos, si el usuario realiza una consulta fuera de ese ámbito, 
-indicá de forma clara y breve que solo podés ayudar con temas académicos
+{_BASE_INSTRUCCIONES}"""
 
-No inventes información. Si no tenés suficiente contexto, pedí más detalles."""
+    # tutor
+    return f"""Sos TesiBot, un asistente para tutores académicos de tesinas universitarias argentinas.
 
-def detectar_problemas_tesina(texto, titulo="", resumen=""):
+Tu rol es ayudar al tutor con:
+- Evaluar la calidad académica y metodológica de una tesina
+- Detectar problemas de estructura, redacción, coherencia y referencias
+- Redactar devoluciones claras, precisas y constructivas para el alumno
+- Sugerir qué correcciones pedirle al alumno y cómo comunicarlas
+- Comparar el trabajo con los estándares académicos esperados
+
+Características de tus respuestas:
+- Tono técnico, analítico y directo
+- Señalá los problemas con claridad, sin suavizarlos innecesariamente
+- Cuando sugieras una devolución para el alumno, enmarcala explícitamente
+- Recordá siempre que estás hablando con el tutor, no con el autor del trabajo
+- Podés referirte a vos mismo como "TesiBot" si es natural
+
+{_BASE_INSTRUCCIONES}"""
+
+
+# ─── Análisis de tesina ───────────────────────────────────────────────────────
+def _limpiar_json_respuesta(texto: str) -> str:
+    """Elimina bloques de markdown (```json ... ```) de una respuesta."""
+    return re.sub(r'^```(?:json)?\s*|\s*```$', '', texto.strip())
+
+
+def analizar_tesina_con_ia(
+    texto: str, titulo: str = "", resumen: str = ""
+) -> tuple[list, str]:
     """
-    Analiza el texto de una tesina y detecta problemas comunes
-    Retorna lista de problemas encontrados
+    Analiza la tesina con IA (Groq). Retorna (list[dict], str).
+    Si Groq no está disponible o falla, retorna listas vacías.
     """
-    problemas = []
-    
-    # Convertir a minúsculas para búsquedas
-    texto_lower = texto.lower()
-    
-    # Verificar largo del documento
-    palabras = len(texto.split())
-    if palabras < 5000:
-        problemas.append({
-            "tipo": "warning",
-            "categoria": "Extensión",
-            "titulo": "Documento muy corto",
-            "descripcion": f"Tu tesina tiene {palabras:,} palabras. Se recomienda un mínimo de 5,000 palabras para un trabajo completo.",
-            "sugerencia": "Considerá expandir las secciones de marco teórico, metodología y análisis."
-        })
-    elif palabras > 30000:
-        problemas.append({
-            "tipo": "info",
-            "categoria": "Extensión",
-            "titulo": "Documento muy extenso",
-            "descripcion": f"Tu tesina tiene {palabras:,} palabras. Asegurate de mantener la concisión.",
-            "sugerencia": "Revisá que no haya contenido redundante o innecesario."
-        })
-    
-    # Buscar secciones obligatorias
-    secciones_requeridas = {
-        "introducción": ["introduccion", "introducción"],
-        "marco teórico": ["marco teórico", "marco teorico", "fundamentación teórica", "fundamentacion teorica"],
-        "metodología": ["metodología", "metodologia", "método", "metodo"],
-        "resultados": ["resultados", "hallazgos", "análisis de datos"],
-        "conclusiones": ["conclusiones", "conclusion"],
-        "referencias": ["referencias", "bibliografía", "bibliografia", "fuentes"]
-    }
-    
-    for seccion, variantes in secciones_requeridas.items():
-        encontrada = any(variante in texto_lower for variante in variantes)
-        if not encontrada:
-            problemas.append({
-                "tipo": "error",
-                "categoria": "Estructura",
-                "titulo": f"Falta sección: {seccion.title()}",
-                "descripcion": f"No se detectó la sección de {seccion} en tu tesina.",
-                "sugerencia": f"Toda tesina debe incluir una sección de {seccion}. Agregala antes de continuar."
-            })
-    
-    # Verificar citas en formato APA
-    # Patrón: (Apellido, Año) o (Apellido et al., Año)
-    import re
-    citas_apa = re.findall(r'\([A-ZÁ-Ú][a-zá-ú]+(?:\s+et\s+al\.)?,\s*\d{4}\)', texto)
-    
-    if len(citas_apa) < 5:
-        problemas.append({
-            "tipo": "warning",
-            "categoria": "Referencias",
-            "titulo": "Pocas citas detectadas",
-            "descripcion": f"Se detectaron solo {len(citas_apa)} citas en formato APA. Un trabajo académico sólido requiere más referencias.",
-            "sugerencia": "Asegurate de citar correctamente en formato APA: (Autor, Año). Agregá más referencias bibliográficas."
-        })
-    
-    # Verificar uso de primera persona
-    primera_persona = re.findall(r'\b(yo|mi|mis|nosotros|nuestro|nuestra|nuestros|nuestras)\b', texto_lower)
-    
-    if len(primera_persona) > 10:
-        problemas.append({
-            "tipo": "warning",
-            "categoria": "Redacción",
-            "titulo": "Uso excesivo de primera persona",
-            "descripcion": f"Se detectaron {len(primera_persona)} usos de primera persona (yo, mi, nosotros).",
-            "sugerencia": "En escritura académica se recomienda usar tercera persona o voz pasiva. Ejemplo: 'Se realizó el análisis' en vez de 'Yo realicé el análisis'."
-        })
-    
-    # Verificar párrafos muy largos
-    parrafos = texto.split('\n\n')
-    parrafos_largos = [p for p in parrafos if len(p.split()) > 200]
-    
-    if len(parrafos_largos) > 5:
-        problemas.append({
-            "tipo": "info",
-            "categoria": "Redacción",
-            "titulo": "Párrafos muy largos",
-            "descripcion": f"Se detectaron {len(parrafos_largos)} párrafos con más de 200 palabras.",
-            "sugerencia": "Dividí los párrafos largos en unidades más pequeñas para mejorar la legibilidad. Un párrafo ideal tiene entre 80-120 palabras."
-        })
-    
-    # Verificar palabras repetidas
-    palabras_comunes = texto_lower.split()
-    from collections import Counter
-    contador = Counter(palabras_comunes)
-    
-    # Excluir palabras muy comunes
-    palabras_excluir = {'el', 'la', 'los', 'las', 'de', 'del', 'en', 'un', 'una', 'y', 'o', 'que', 'por', 'para', 'con', 'a', 'se', 'es', 'al', 'como', 'su', 'sus'}
-    
-    palabras_repetidas = {palabra: count for palabra, count in contador.items() 
-                          if count > 50 and len(palabra) > 4 and palabra not in palabras_excluir}
-    
-    if palabras_repetidas:
-        top_3 = sorted(palabras_repetidas.items(), key=lambda x: x[1], reverse=True)[:3]
-        palabras_str = ', '.join([f"'{p[0]}' ({p[1]} veces)" for p in top_3])
-        
-        problemas.append({
-            "tipo": "info",
-            "categoria": "Redacción",
-            "titulo": "Palabras muy repetidas",
-            "descripcion": f"Algunas palabras aparecen con mucha frecuencia: {palabras_str}",
-            "sugerencia": "Usá sinónimos para mejorar la variedad léxica. Herramientas: wordreference.com, sinónimos RAE."
-        })
-    
-    # Verificar que el título esté presente en el documento
-    if titulo and titulo.lower() not in texto_lower[:1000]:
-        problemas.append({
-            "tipo": "warning",
-            "categoria": "Estructura",
-            "titulo": "Título no aparece al inicio",
-            "descripcion": "El título de tu tesina no aparece en el inicio del documento.",
-            "sugerencia": "Asegurate de incluir el título completo en la portada y al inicio de la introducción."
-        })
-    
-    # Verificar figuras/tablas sin referencia
-    tiene_figuras = bool(re.search(r'figura\s+\d+|fig\.\s+\d+|gráfico\s+\d+', texto_lower))
-    tiene_tablas = bool(re.search(r'tabla\s+\d+|cuadro\s+\d+', texto_lower))
-    
-    if tiene_figuras or tiene_tablas:
-        if not re.search(r'(ver|véase|como se muestra en|según)\s+(la\s+)?(figura|tabla|gráfico|cuadro)', texto_lower):
-            problemas.append({
-                "tipo": "info",
-                "categoria": "Figuras y Tablas",
-                "titulo": "Figuras/Tablas sin referenciar",
-                "descripcion": "Se detectaron figuras o tablas, pero no se encontraron referencias a ellas en el texto.",
-                "sugerencia": "Todas las figuras y tablas deben ser referenciadas en el texto. Ejemplo: 'Como se observa en la Figura 1...'"
-            })
-    
-    # Verificar introducción muy corta
-    intro_match = re.search(r'introducción(.*?)(marco teórico|metodología|capítulo)', texto_lower, re.DOTALL)
-    if intro_match:
-        intro_palabras = len(intro_match.group(1).split())
-        if intro_palabras < 300:
-            problemas.append({
-                "tipo": "warning",
-                "categoria": "Introducción",
-                "titulo": "Introducción muy breve",
-                "descripcion": f"Tu introducción tiene solo {intro_palabras} palabras.",
-                "sugerencia": "Una introducción completa debe tener al menos 500-800 palabras. Debe incluir: contexto, problema, objetivos, justificación y estructura del trabajo."
-            })
-    
-    # Verificar referencias sin formato APA en la sección de bibliografía
-    biblio_match = re.search(r'(referencias|bibliografía)(.*)', texto_lower, re.DOTALL)
-    if biblio_match:
-        biblio_texto = biblio_match.group(2)[:2000]  # Primeras 2000
-        
-        # Verificar si hay URLs sin formato
-        urls_sin_formato = re.findall(r'http[s]?://[^\s]+', biblio_texto)
-        if len(urls_sin_formato) > 3:
-            problemas.append({
-                "tipo": "warning",
-                "categoria": "Referencias",
-                "titulo": "URLs sin formato APA",
-                "descripcion": "Se detectaron URLs sin el formato APA adecuado en las referencias.",
-                "sugerencia": "En APA 7, las URLs deben ir al final de la referencia sin punto final. Ejemplo: Recuperado de https://..."
-            })
-    
-    return problemas
+    groq = get_groq_client()
+    if not groq:
+        logger.warning("Groq no disponible; no se puede analizar la tesina")
+        return [], ""
 
+    prompt_analisis = f"""Sos un experto evaluador de tesinas universitarias argentinas.
+
+Analizá la siguiente tesina y detectá problemas comunes.
+
+TESINA:
+Título: {titulo}
+Resumen: {resumen}
+
+CONTENIDO (extracto):
+{texto[:15000]}
+
+INSTRUCCIONES:
+Analizá la tesina y detectá problemas en estas categorías:
+1. Extensión del documento
+2. Estructura (secciones obligatorias: introducción, marco teórico, metodología, resultados, conclusiones, referencias)
+3. Referencias y citas (formato APA)
+4. Redacción académica (uso de primera persona, párrafos largos, palabras repetitivas)
+5. Figuras y tablas
+6. Calidad del contenido
+
+Para cada problema detectado, respondé en formato JSON con esta estructura:
+{{
+  "problemas": [
+    {{
+      "tipo": "error|warning|info",
+      "categoria": "Extensión|Estructura|Referencias|Redacción|...",
+      "titulo": "Título corto del problema",
+      "descripcion": "Descripción detallada del problema detectado",
+      "sugerencia": "Recomendación específica para solucionarlo"
+    }}
+  ],
+  "resumen": "Resumen general del análisis en 2-3 oraciones"
+}}
+
+RESPONDE SOLO CON EL JSON, sin texto adicional."""
+
+    try:
+        response = groq.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Sos un experto evaluador de tesinas. Respondés SOLO en formato JSON válido.",
+                },
+                {"role": "user", "content": prompt_analisis},
+            ],
+            temperature=0.3,
+            max_tokens=2000,
+        )
+
+        respuesta_ia = _limpiar_json_respuesta(response.choices[0].message.content)
+        resultado = json.loads(respuesta_ia)
+        return resultado.get('problemas', []), resultado.get('resumen', '')
+
+    except json.JSONDecodeError:
+        logger.exception("Groq retornó JSON inválido")
+    except Exception:
+        logger.exception("Error en análisis con IA")
+
+    return [], ""
+
+
+
+# =============================================================================
+# Endpoint principal del chat
+# =============================================================================
 
 @chat_bp.route("/chat/asistente", methods=["POST"])
-@alumno_required
+@alumno_o_tutor_required
 def chat_asistente():
     try:
-        alumno_id = request.current_user['user_id']
-        data = request.get_json()
-        user_message    = data.get('message', '')
-        tesina_id       = data.get('tesina_id')
-        conversacion_id = data.get('conversacion_id')
+        user_id   = request.current_user['user_id']
+        user_role = request.current_user['role']
+        data      = request.get_json()
+
+        user_message        = data.get('message', '').strip()
+        tesina_id_frontend  = data.get('tesina_id')
+        conversacion_id     = data.get('conversacion_id')
 
         if not user_message:
             return jsonify({"error": "Mensaje vacío"}), 400
 
-        # Nombre del usuario
+        # ── Una sola conexión para todas las lecturas de este request ─────────
+        tesina_titulo        = None
+        tesina_context       = ""
+        nombre_alumno_tesina = None
+        nombre_usuario       = "usuario"
+        tesina_id            = tesina_id_frontend
+        historial_mensajes   = []
+
         with get_db() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT nombre FROM usuarios WHERE id = ?", (alumno_id,))
-            row = cursor.fetchone()
-            nombre_usuario = row['nombre'].split()[0] if row else "estudiante"  # solo el primer nombre
 
-        # Contexto de la tesina
-        tesina_titulo  = None
-        tesina_context = ""
-        if tesina_id:
-            with get_db() as conn:
-                cursor = conn.cursor()
+            # Nombre del usuario
+            cursor.execute("SELECT nombre FROM usuarios WHERE id = ?", (user_id,))
+            row = cursor.fetchone()
+            nombre_usuario = row['nombre'] if row else "usuario"
+
+            # Si hay conversación activa, el tesina_id viene de la BD (fuente de verdad)
+            if conversacion_id:
+                cursor.execute(
+                    "SELECT tesina_id FROM conversaciones WHERE id = ? AND usuario_id = ?",
+                    (conversacion_id, user_id),
+                )
+                conv_row = cursor.fetchone()
+                if conv_row:
+                    tesina_id = conv_row['tesina_id']
+                logger.debug(
+                    "tesina_id_frontend=%s conversacion_id=%s tesina_id_final=%s",
+                    tesina_id_frontend, conversacion_id, tesina_id,
+                )
+
+            # Contexto de la tesina
+            if tesina_id:
                 cursor.execute(
                     "SELECT titulo, resumen, nombre_archivo FROM tesinas WHERE id = ?",
-                    (tesina_id,)
+                    (tesina_id,),
                 )
                 tesina = cursor.fetchone()
+                if tesina:
+                    tesina_titulo = tesina['titulo']
+                    filepath = os.path.join('uploads', tesina['nombre_archivo'])
+                    if os.path.exists(filepath):
+                        file_content = extract_text_from_file(filepath)
+                        if file_content:
+                            tesina_context = (
+                                "INSTRUCCIÓN CRÍTICA: Ya tenés acceso COMPLETO al contenido de la tesina. "
+                                "NUNCA le pidas al usuario que comparta, envíe, suba o adjunte su trabajo. "
+                                "NUNCA digas que no tenés acceso al archivo. El texto completo está abajo.\n\n"
+                                f"=== TESINA ===\n"
+                                f"Título: {tesina['titulo']}\n"
+                                f"Resumen: {tesina['resumen']}\n\n"
+                                f"CONTENIDO COMPLETO:\n{file_content[:12000]}\n"
+                                "=== FIN TESINA ===\n\n"
+                                "Analizá ESTE contenido directamente. No necesitás pedir nada más al usuario."
+                            )
 
-            if tesina:
-                tesina_titulo = tesina['titulo']
-                filepath = os.path.join('uploads', tesina['nombre_archivo'])
-                if os.path.exists(filepath):
-                    file_content = extract_text_from_file(filepath)
-                    if file_content:
-                        tesina_context = (
-                            f"\nTESINA ANALIZADA:\nTítulo: {tesina['titulo']}\n"
-                            f"Resumen: {tesina['resumen']}\n\n"
-                            f"CONTENIDO (extracto):\n{file_content[:2000]}...\n"
-                        )
+                if user_role == 'tutor':
+                    cursor.execute(
+                        """SELECT u.nombre FROM usuarios u
+                           JOIN tesinas t ON t.alumno_id = u.id
+                           WHERE t.id = ?""",
+                        (tesina_id,),
+                    )
+                    alumno_row = cursor.fetchone()
+                    nombre_alumno_tesina = alumno_row['nombre'] if alumno_row else None
 
-        system_instruction = (
-            SYSTEM_PROMPT
-            + f"\n\nEl nombre del alumno con quien estás hablando es {nombre_usuario}. "
-              f"Saludalo por su nombre al inicio de la conversación si es el primer mensaje."
-            + (f"\n\n{tesina_context}" if tesina_context else "")
-        )
-
-        # Historial desde la BD
-        # Groq usa formato OpenAI: [{role: "user"|"assistant"|"system", content: str}]
-        groq_messages = [{"role": "system", "content": system_instruction}]
-
-        if conversacion_id:
-            with get_db() as conn:
-                cursor = conn.cursor()
+            # Historial de la conversación
+            if conversacion_id:
                 cursor.execute(
-                    "SELECT id FROM conversaciones WHERE id = ? AND alumno_id = ?",
-                    (conversacion_id, alumno_id)
+                    "SELECT id FROM conversaciones WHERE id = ? AND usuario_id = ?",
+                    (conversacion_id, user_id),
                 )
                 if cursor.fetchone():
                     cursor.execute(
                         """SELECT rol, contenido FROM mensajes_chat
                            WHERE conversacion_id = ?
                            ORDER BY created_at ASC
-                           LIMIT 20""",
-                        (conversacion_id,)
+                           LIMIT ?""",
+                        (conversacion_id, HISTORIAL_LIMITE),
                     )
-                    for row in cursor.fetchall():
-                        role = "assistant" if row['rol'] == 'assistant' else "user"
-                        groq_messages.append({"role": role, "content": row['contenido']})
+                    historial_mensajes = [
+                        {"role": "assistant" if r['rol'] == 'assistant' else "user",
+                         "content": r['contenido']}
+                        for r in cursor.fetchall()
+                    ]
 
+        # ── Construcción del system prompt ────────────────────────────────────
+        aviso_alumno = (
+            f"\n\n⚠️ CONTEXTO: Estás revisando la tesina de {nombre_alumno_tesina}. "
+            "Dirigite siempre al tutor, no al autor del trabajo."
+            if user_role == 'tutor' and nombre_alumno_tesina else ""
+        )
+        nombre_rol = "alumno" if user_role == 'alumno' else "tutor"
+        system_instruction = (
+            get_system_prompt(user_role)
+            + f"\n\nEl nombre del {nombre_rol} con quien estás hablando es {nombre_usuario}. "
+              "Saludalo usando su nombre completo al inicio de la conversación si es el primer mensaje. "
+              "No uses ningún otro nombre para referirte a esta persona."
+            + (f"\n\n{tesina_context}" if tesina_context else "")
+            + aviso_alumno
+        )
+
+        groq_messages = [{"role": "system", "content": system_instruction}]
+        groq_messages.extend(historial_mensajes)
         groq_messages.append({"role": "user", "content": user_message})
 
-        # Llamada a Groq
+        # ── Llamada a Groq ────────────────────────────────────────────────────
         response_text = None
         mode = "mock"
 
         if USE_GROQ:
             try:
+                # Usamos el modelo más capaz cuando hay contenido de tesina para analizar
+                model = "llama-3.3-70b-versatile" if tesina_context else "llama-3.1-8b-instant"
+                max_tok = 2048 if tesina_context else 1024
                 response = client.chat.completions.create(
-                    model="llama-3.1-8b-instant",
+                    model=model,
                     messages=groq_messages,
-                    max_tokens=1024,
+                    max_tokens=max_tok,
                     temperature=0.7,
                 )
                 response_text = response.choices[0].message.content
                 mode = "groq"
 
             except Exception as e:
-                traceback.print_exc()
+                logger.exception("Error al llamar a Groq")
                 error_str = str(e)
                 if "429" in error_str or "rate_limit" in error_str.lower():
                     match = re.search(r'(\d+(?:\.\d+)?)\s*s', error_str)
@@ -388,235 +416,238 @@ def chat_asistente():
         if response_text is None:
             response_text = get_mock_response(user_message, tesina_titulo)
 
-        # Guardar en BD
+        # ── Persistencia ──────────────────────────────────────────────────────
         with get_db() as conn:
             cursor = conn.cursor()
 
             if not conversacion_id:
                 titulo_auto = user_message[:50] + ("..." if len(user_message) > 50 else "")
                 cursor.execute(
-                    "INSERT INTO conversaciones (alumno_id, tesina_id, titulo) VALUES (?, ?, ?)",
-                    (alumno_id, tesina_id, titulo_auto)
+                    "INSERT INTO conversaciones (usuario_id, rol_usuario, tesina_id, titulo) VALUES (?, ?, ?, ?)",
+                    (user_id, user_role, tesina_id, titulo_auto),
                 )
                 conversacion_id = cursor.lastrowid
             else:
                 cursor.execute(
-                    "UPDATE conversaciones SET updated_at = CURRENT_TIMESTAMP WHERE id = ? AND alumno_id = ?",
-                    (conversacion_id, alumno_id)
+                    "UPDATE conversaciones SET updated_at = CURRENT_TIMESTAMP WHERE id = ? AND usuario_id = ?",
+                    (conversacion_id, user_id),
                 )
 
-            cursor.execute(
+            cursor.executemany(
                 "INSERT INTO mensajes_chat (conversacion_id, rol, contenido) VALUES (?, ?, ?)",
-                (conversacion_id, 'user', user_message)
-            )
-            cursor.execute(
-                "INSERT INTO mensajes_chat (conversacion_id, rol, contenido) VALUES (?, ?, ?)",
-                (conversacion_id, 'assistant', response_text)
+                [
+                    (conversacion_id, 'user',      user_message),
+                    (conversacion_id, 'assistant',  response_text),
+                ],
             )
 
         return jsonify({
-            "response": response_text,
-            "tesina_id": tesina_id,
-            "conversacion_id": conversacion_id,
-            "mode": mode
+            "response":              response_text,
+            "tesina_id":             tesina_id,
+            "conversacion_id":       conversacion_id,
+            "nombre_alumno_tesina":  nombre_alumno_tesina,
+            "mode":                  mode,
         })
 
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify({"error": f"Error en el asistente: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error inesperado en chat_asistente")
+        return jsonify({"error": "Error en el asistente"}), 500
 
 
-# =========================
+# =============================================================================
 # Gestión de conversaciones
-# =========================
+# =============================================================================
 
 @chat_bp.route("/chat/conversaciones", methods=["GET"])
-@alumno_required
+@alumno_o_tutor_required
 def listar_conversaciones():
     try:
-        alumno_id = request.current_user['user_id']
+        user_id = request.current_user['user_id']
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 SELECT
                     c.id, c.titulo, c.tesina_id, c.created_at, c.updated_at,
-                    t.titulo as tesina_titulo,
-                    COUNT(m.id) as total_mensajes,
+                    t.titulo  AS tesina_titulo,
+                    COUNT(m.id) AS total_mensajes,
                     (SELECT contenido FROM mensajes_chat
                      WHERE conversacion_id = c.id
-                     ORDER BY created_at DESC LIMIT 1) as ultimo_mensaje
+                     ORDER BY created_at DESC LIMIT 1) AS ultimo_mensaje
                 FROM conversaciones c
                 LEFT JOIN tesinas t ON c.tesina_id = t.id
                 LEFT JOIN mensajes_chat m ON m.conversacion_id = c.id
-                WHERE c.alumno_id = ?
+                WHERE c.usuario_id = ?
                 GROUP BY c.id
                 ORDER BY c.updated_at DESC
-            """, (alumno_id,))
-            conversaciones = [dict(row) for row in cursor.fetchall()]
-        return jsonify(conversaciones)
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+            """, (user_id,))
+            return jsonify([dict(row) for row in cursor.fetchall()])
+    except Exception:
+        logger.exception("Error al listar conversaciones")
+        return jsonify({"error": "Error al obtener conversaciones"}), 500
 
 
 @chat_bp.route("/chat/conversaciones", methods=["POST"])
-@alumno_required
+@alumno_o_tutor_required
 def crear_conversacion():
     try:
-        alumno_id = request.current_user['user_id']
-        data = request.get_json()
+        user_id   = request.current_user['user_id']
+        user_role = request.current_user['role']
+        data      = request.get_json()
         tesina_id = data.get('tesina_id')
-        titulo = data.get('titulo', 'Nueva conversación')
+        titulo    = data.get('titulo', 'Nueva conversación')
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO conversaciones (alumno_id, tesina_id, titulo) VALUES (?, ?, ?)",
-                (alumno_id, tesina_id, titulo)
+                "INSERT INTO conversaciones (usuario_id, rol_usuario, tesina_id, titulo) VALUES (?, ?, ?, ?)",
+                (user_id, user_role, tesina_id, titulo),
             )
-            conversacion_id = cursor.lastrowid
-        return jsonify({'id': conversacion_id, 'titulo': titulo, 'tesina_id': tesina_id})
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+            return jsonify({'id': cursor.lastrowid, 'titulo': titulo, 'tesina_id': tesina_id})
+    except Exception:
+        logger.exception("Error al crear conversación")
+        return jsonify({"error": "Error al crear conversación"}), 500
 
 
 @chat_bp.route("/chat/conversaciones/<int:conversacion_id>/mensajes", methods=["GET"])
-@alumno_required
+@alumno_o_tutor_required
 def obtener_mensajes(conversacion_id):
     try:
-        alumno_id = request.current_user['user_id']
+        user_id = request.current_user['user_id']
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT id FROM conversaciones WHERE id = ? AND alumno_id = ?",
-                (conversacion_id, alumno_id)
+                "SELECT id FROM conversaciones WHERE id = ? AND usuario_id = ?",
+                (conversacion_id, user_id),
             )
             if not cursor.fetchone():
                 return jsonify({"error": "Conversación no encontrada"}), 404
             cursor.execute(
-                "SELECT id, rol, contenido, created_at FROM mensajes_chat WHERE conversacion_id = ? ORDER BY created_at ASC",
-                (conversacion_id,)
+                """SELECT id, rol, contenido, created_at
+                   FROM mensajes_chat
+                   WHERE conversacion_id = ?
+                   ORDER BY created_at ASC""",
+                (conversacion_id,),
             )
             mensajes = [
                 {'id': r['id'], 'role': r['rol'], 'content': r['contenido'], 'created_at': r['created_at']}
                 for r in cursor.fetchall()
             ]
         return jsonify(mensajes)
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        logger.exception("Error al obtener mensajes de conversación %s", conversacion_id)
+        return jsonify({"error": "Error al obtener mensajes"}), 500
 
 
 @chat_bp.route("/chat/conversaciones/<int:conversacion_id>", methods=["DELETE"])
-@alumno_required
+@alumno_o_tutor_required
 def eliminar_conversacion(conversacion_id):
     try:
-        alumno_id = request.current_user['user_id']
+        user_id = request.current_user['user_id']
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT id FROM conversaciones WHERE id = ? AND alumno_id = ?",
-                (conversacion_id, alumno_id)
+                "SELECT id FROM conversaciones WHERE id = ? AND usuario_id = ?",
+                (conversacion_id, user_id),
             )
             if not cursor.fetchone():
                 return jsonify({"error": "Conversación no encontrada"}), 404
             cursor.execute("DELETE FROM conversaciones WHERE id = ?", (conversacion_id,))
         return jsonify({"message": "Conversación eliminada"})
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        logger.exception("Error al eliminar conversación %s", conversacion_id)
+        return jsonify({"error": "Error al eliminar conversación"}), 500
 
 
 @chat_bp.route("/chat/conversaciones/<int:conversacion_id>/titulo", methods=["PUT"])
-@alumno_required
+@alumno_o_tutor_required
 def actualizar_titulo_conversacion(conversacion_id):
     try:
-        alumno_id = request.current_user['user_id']
-        data = request.get_json()
-        nuevo_titulo = data.get('titulo', '').strip()
+        user_id      = request.current_user['user_id']
+        nuevo_titulo = (request.get_json() or {}).get('titulo', '').strip()
         if not nuevo_titulo:
             return jsonify({"error": "Título vacío"}), 400
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "UPDATE conversaciones SET titulo = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND alumno_id = ?",
-                (nuevo_titulo, conversacion_id, alumno_id)
+                """UPDATE conversaciones
+                   SET titulo = ?, updated_at = CURRENT_TIMESTAMP
+                   WHERE id = ? AND usuario_id = ?""",
+                (nuevo_titulo, conversacion_id, user_id),
             )
             if cursor.rowcount == 0:
                 return jsonify({"error": "Conversación no encontrada"}), 404
         return jsonify({"message": "Título actualizado", "titulo": nuevo_titulo})
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
-    
-# =========================
+    except Exception:
+        logger.exception("Error al actualizar título de conversación %s", conversacion_id)
+        return jsonify({"error": "Error al actualizar título"}), 500
+
+
+# =============================================================================
 # Analizar tesina
-# =========================
+# =============================================================================
 
 @chat_bp.route("/chat/analizar-tesina/<int:tesina_id>", methods=["GET"])
-@alumno_required
+@alumno_o_tutor_required
 def analizar_tesina_problemas(tesina_id):
     """
-    Analiza una tesina y retorna lista de problemas detectados
+    Analiza una tesina usando IA y retorna la lista de problemas detectados.
+    Alumnos solo pueden analizar sus propias tesinas; tutores las asignadas.
     """
     try:
-        alumno_id = request.current_user['user_id']
-        
+        user_id   = request.current_user['user_id']
+        user_role = request.current_user['role']
+
         with get_db() as conn:
             cursor = conn.cursor()
-            
-            # Verificar que la tesina pertenece al alumno
-            cursor.execute("""
-                SELECT titulo, resumen, nombre_archivo
-                FROM tesinas
-                WHERE id = ? AND alumno_id = ?
-            """, (tesina_id, alumno_id))
-            
+            if user_role == 'alumno':
+                cursor.execute(
+                    "SELECT titulo, resumen, nombre_archivo FROM tesinas WHERE id = ? AND alumno_id = ?",
+                    (tesina_id, user_id),
+                )
+            else:  # tutor
+                cursor.execute(
+                    """SELECT titulo, resumen, nombre_archivo FROM tesinas
+                       WHERE id = ? AND tutor_id = ? AND estado_alumno = 'enviada'""",
+                    (tesina_id, user_id),
+                )
             tesina = cursor.fetchone()
-            
-            if not tesina:
-                return jsonify({"error": "Tesina no encontrada"}), 404
-        
-        # Extraer texto del archivo
+
+        if not tesina:
+            return jsonify({"error": "Tesina no encontrada o sin permisos"}), 404
+
         filepath = os.path.join('uploads', tesina['nombre_archivo'])
-        
         if not os.path.exists(filepath):
             return jsonify({"error": "Archivo no encontrado"}), 404
-        
+
         texto_completo = extract_text_from_file(filepath)
-        
         if not texto_completo:
             return jsonify({"error": "No se pudo extraer el texto del archivo"}), 500
-        
-        # Analizar y detectar problemas
-        problemas = detectar_problemas_tesina(
+
+        problemas, resumen_analisis = analizar_tesina_con_ia(
             texto_completo,
             titulo=tesina['titulo'],
-            resumen=tesina['resumen']
+            resumen=tesina['resumen'],
         )
-        
-        # Estadísticas adicionales
-        palabras_total = len(texto_completo.split())
-        caracteres_total = len(texto_completo)
-        paginas_estimadas = palabras_total // 250  # ~250 palabras por página
-        
+
+        total_palabras    = len(texto_completo.split())
+        paginas_estimadas = total_palabras // 250
+
         return jsonify({
-            "problemas": problemas,
+            "problemas":        problemas,
+            "resumen":          resumen_analisis,
+            "metodo":           "ia",
             "estadisticas": {
-                "palabras": palabras_total,
-                "caracteres": caracteres_total,
-                "paginas_estimadas": paginas_estimadas
+                "palabras":           total_palabras,
+                "caracteres":         len(texto_completo),
+                "paginas_estimadas":  paginas_estimadas,
             },
             "total_problemas": len(problemas),
             "nivel_gravedad": {
-                "errores": len([p for p in problemas if p['tipo'] == 'error']),
-                "advertencias": len([p for p in problemas if p['tipo'] == 'warning']),
-                "informacion": len([p for p in problemas if p['tipo'] == 'info'])
-            }
+                "errores":      sum(1 for p in problemas if p.get('tipo') == 'error'),
+                "advertencias": sum(1 for p in problemas if p.get('tipo') == 'warning'),
+                "informacion":  sum(1 for p in problemas if p.get('tipo') == 'info'),
+            },
         })
-        
-    except Exception as e:
-        print(f"Error al analizar tesina: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+
+    except Exception:
+        logger.exception("Error al analizar tesina %s", tesina_id)
+        return jsonify({"error": "Error al analizar la tesina"}), 500

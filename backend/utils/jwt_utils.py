@@ -128,3 +128,18 @@ def alumno_required(f):
         return f(*args, **kwargs)
     
     return decorated
+
+def alumno_o_tutor_required(f):
+    """
+    Decorador para rutas que pueden acceder alumnos Y tutores
+    (usado para el chat asistente)
+    """
+    @wraps(f)
+    @token_required
+    def decorated(*args, **kwargs):
+        if request.current_user['role'] not in ['alumno', 'tutor', 'admin']:
+            return jsonify({'error': 'Acceso denegado. Se requiere rol de alumno o tutor'}), 403
+        
+        return f(*args, **kwargs)
+    
+    return decorated

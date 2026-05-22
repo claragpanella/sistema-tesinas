@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Layout } from '../../components/Layout/Layout'
 import { Spinner } from '../../components/Common/Spinner'
 import { Alert } from '../../components/Common/Alert'
@@ -16,7 +17,9 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  User
+  User,
+  Bot,
+  MessageSquare,
 } from 'lucide-react'
 
 // =========================
@@ -32,11 +35,10 @@ function RevisarModal({ version, onClose, onSaved }) {
     e.preventDefault()
     setError('')
     setLoading(true)
-
     try {
       await api.post(`/tutor/versiones/${version.version_id}/revisar`, {
         estado,
-        observaciones
+        observaciones,
       })
       onSaved()
     } catch (err) {
@@ -47,60 +49,34 @@ function RevisarModal({ version, onClose, onSaved }) {
   }
 
   const estados = [
-    {
-      value: 'pendiente',
-      label: 'Pendiente',
-      icon: Clock,
-      color: 'text-yellow-600 bg-yellow-50 border-yellow-200'
-    },
-    {
-      value: 'aprobada',
-      label: 'Aprobada',
-      icon: CheckCircle,
-      color: 'text-green-600 bg-green-50 border-green-200'
-    },
-    {
-      value: 'rechazada',
-      label: 'Rechazada',
-      icon: XCircle,
-      color: 'text-red-600 bg-red-50 border-red-200'
-    },
+    { value: 'pendiente', label: 'Pendiente',  icon: Clock,        color: 'text-yellow-600 bg-yellow-50 border-yellow-200' },
+    { value: 'aprobada',  label: 'Aprobada',   icon: CheckCircle,  color: 'text-green-600 bg-green-50 border-green-200' },
+    { value: 'rechazada', label: 'Rechazada',  icon: XCircle,      color: 'text-red-600 bg-red-50 border-red-200' },
   ]
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
 
-        {/* Header */}
         <div className="p-6 border-b border-gray-100">
-          <h2 className="text-xl font-bold text-gray-900">
-            Revisar Tesina
-          </h2>
+          <h2 className="text-xl font-bold text-gray-900">Revisar Tesina</h2>
           <div className="flex items-center gap-3 mt-1">
-            <p className="text-sm text-gray-500">
-              Versión {version.numero_version}
-            </p>
+            <p className="text-sm text-gray-500">Versión {version.numero_version}</p>
             {version.alumno_nombre && (
               <>
                 <span className="text-gray-300">·</span>
                 <div className="flex items-center gap-1">
                   <User className="w-3 h-3 text-gray-400" />
-                  <p className="text-sm text-gray-500">
-                    {version.alumno_nombre}
-                  </p>
+                  <p className="text-sm text-gray-500">{version.alumno_nombre}</p>
                 </div>
               </>
             )}
           </div>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {error && (
-            <Alert type="error" message={error} onClose={() => setError('')} />
-          )}
+          {error && <Alert type="error" message={error} onClose={() => setError('')} />}
 
-          {/* Selector de estado */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-3">
               Estado de la revisión *
@@ -124,7 +100,6 @@ function RevisarModal({ version, onClose, onSaved }) {
             </div>
           </div>
 
-          {/* Observaciones */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Observaciones
@@ -139,7 +114,6 @@ function RevisarModal({ version, onClose, onSaved }) {
             />
           </div>
 
-          {/* Botones */}
           <div className="flex gap-3">
             <button
               type="button"
@@ -178,12 +152,11 @@ function RevisarModal({ version, onClose, onSaved }) {
 // =========================
 function TesinaCard({ tesina, onRevisar }) {
   const [expanded, setExpanded] = useState(false)
+  const navigate = useNavigate()
 
   const handleDownload = async (filename) => {
     try {
-      const response = await api.get(`/uploads/${filename}`, {
-        responseType: 'blob'
-      })
+      const response = await api.get(`/uploads/${filename}`, { responseType: 'blob' })
       const url = window.URL.createObjectURL(new Blob([response.data]))
       const link = document.createElement('a')
       link.href = url
@@ -197,102 +170,72 @@ function TesinaCard({ tesina, onRevisar }) {
     }
   }
 
-const handlePreview = async (filename) => {
-  try {
-    const response = await api.get(`/uploads/${filename}`, {
-      responseType: 'blob'
-    })
-    
-    // Detectar tipo de archivo
-    const extension = filename.split('.').pop().toLowerCase()
-    let mimeType = 'application/octet-stream'
-    
-    if (extension === 'pdf') {
-      mimeType = 'application/pdf'
-    } else if (extension === 'docx') {
-      mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    } else if (extension === 'doc') {
-      mimeType = 'application/msword'
+  const handlePreview = async (filename) => {
+    try {
+      const response = await api.get(`/uploads/${filename}`, { responseType: 'blob' })
+      const ext = filename.split('.').pop().toLowerCase()
+      const mimeTypes = {
+        pdf:  'application/pdf',
+        docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        doc:  'application/msword',
+      }
+      const blob = new Blob([response.data], { type: mimeTypes[ext] || 'application/octet-stream' })
+      const url = window.URL.createObjectURL(blob)
+      window.open(url, '_blank')
+      setTimeout(() => window.URL.revokeObjectURL(url), 1000)
+    } catch (err) {
+      console.error('Error al previsualizar:', err)
     }
-    
-    const blob = new Blob([response.data], { type: mimeType })
-    const url = window.URL.createObjectURL(blob)
-    window.open(url, '_blank')
-    
-    setTimeout(() => window.URL.revokeObjectURL(url), 1000)
-  } catch (err) {
-    console.error('Error al previsualizar:', err)
-  }
-}
-
-  const estadoColor = {
-    'pendiente': 'border-l-yellow-400',
-    'aprobada':  'border-l-green-400',
-    'rechazada': 'border-l-red-400',
   }
 
-  const borderColor = estadoColor[tesina.version_estado] || 'border-l-gray-300'
+  const handleAnalizarConBot = () => {
+    navigate(`/chat?tesina=${tesina.tesina_id}&autoanalizar=1`)
+  }
+
+  const borderColor = {
+    pendiente: 'border-l-yellow-400',
+    aprobada:  'border-l-green-400',
+    rechazada: 'border-l-red-400',
+  }[tesina.version_estado] ?? 'border-l-gray-300'
 
   return (
     <div className={`bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 ${borderColor} overflow-hidden`}>
 
-      {/* Header de la card */}
       <div className="p-5">
         <div className="flex items-start justify-between gap-4">
+
+          {/* Info */}
           <div className="flex items-start gap-4 flex-1">
             <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
               <FileText className="w-5 h-5 text-indigo-600" />
             </div>
             <div className="flex-1 min-w-0">
-
-              {/* Título y estado */}
               <div className="flex items-center gap-2 flex-wrap mb-1">
                 <h3 className="font-semibold text-gray-900">
                   {tesina.titulo || 'Sin título'}
                 </h3>
                 <Badge text={tesina.version_estado || tesina.tesina_estado} />
-                <span className="text-xs text-gray-400">
-                  v{tesina.numero_version}
-                </span>
+                <span className="text-xs text-gray-400">v{tesina.numero_version}</span>
               </div>
 
-              {/* Alumno */}
               {tesina.alumno_nombre && (
                 <div className="flex items-center gap-1 mb-2">
                   <div className="w-5 h-5 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
                     <User className="w-3 h-3 text-indigo-600" />
                   </div>
-                  <span className="text-xs font-medium text-gray-600">
-                    {tesina.alumno_nombre}
-                  </span>
+                  <span className="text-xs font-medium text-gray-600">{tesina.alumno_nombre}</span>
                 </div>
               )}
 
-              {/* Resumen */}
               {tesina.resumen && (
-                <p className="text-sm text-gray-600 line-clamp-2">
-                  {tesina.resumen}
-                </p>
+                <p className="text-sm text-gray-600 line-clamp-2">{tesina.resumen}</p>
               )}
 
-              {/* Observaciones previas */}
-              {tesina.observaciones && (
-                <div className="mt-2 p-2 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500 italic">
-                    <span className="font-medium">Observaciones: </span>
-                    {tesina.observaciones}
-                  </p>
-                </div>
-              )}
-
-              {/* Fecha */}
               <p className="text-xs text-gray-400 mt-2">
-                Entregado: {new Date(tesina.fecha_creacion).toLocaleDateString('es-AR', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
+                Entregado:{' '}
+                {new Date(tesina.fecha_creacion).toLocaleDateString('es-AR', {
+                  day: '2-digit', month: '2-digit', year: 'numeric',
+                  hour: '2-digit', minute: '2-digit',
                 })}
               </p>
             </div>
@@ -324,30 +267,31 @@ const handlePreview = async (filename) => {
               </button>
             </div>
 
+            {/* Botón TesiBot */}
+            <button
+              onClick={handleAnalizarConBot}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 border border-purple-200 text-xs font-medium rounded-lg hover:bg-purple-100 hover:border-purple-300 transition-colors"
+              title="Analizar con TesiBot"
+            >
+              <Bot className="w-3.5 h-3.5" />
+              Analizar con TesiBot
+            </button>
+
             <button
               onClick={() => setExpanded(!expanded)}
               className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600"
             >
               {expanded ? (
-                <>
-                  <ChevronUp className="w-3 h-3" />
-                  Ocultar historial
-                </>
+                <><ChevronUp className="w-3 h-3" /> Ocultar historial</>
               ) : (
-                <>
-                  <ChevronDown className="w-3 h-3" />
-                  Ver historial
-                </>
+                <><ChevronDown className="w-3 h-3" /> Ver historial</>
               )}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Historial de versiones expandible */}
-      {expanded && (
-        <HistorialVersiones tesinaId={tesina.tesina_id} />
-      )}
+      {expanded && <HistorialVersiones tesinaId={tesina.tesina_id} />}
     </div>
   )
 }
@@ -360,26 +304,14 @@ function HistorialVersiones({ tesinaId }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const fetchVersiones = async () => {
-      try {
-        const response = await api.get(`/tesinas/${tesinaId}/versions`)
-        setVersiones(response.data)
-      } catch (err) {
-        console.error('Error al cargar versiones:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchVersiones()
+    api.get(`/tesinas/${tesinaId}/versions`)
+      .then((r) => setVersiones(r.data))
+      .catch((err) => console.error('Error al cargar versiones:', err))
+      .finally(() => setLoading(false))
   }, [tesinaId])
 
   if (loading) {
-    return (
-      <div className="border-t border-gray-100 p-4">
-        <Spinner size="sm" />
-      </div>
-    )
+    return <div className="border-t border-gray-100 p-4"><Spinner size="sm" /></div>
   }
 
   return (
@@ -399,23 +331,25 @@ function HistorialVersiones({ tesinaId }) {
           >
             <div className="flex items-center gap-3">
               <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                v.is_current
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-200 text-gray-600'
+                v.is_current ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-600'
               }`}>
                 v{v.numero_version}
               </span>
               <div>
-                <Badge text={v.estado} />
+                <Badge text={v.estado_tutor} />
                 <p className="text-xs text-gray-400 mt-1">
                   {new Date(v.fecha_creacion).toLocaleDateString('es-AR')}
                 </p>
+                {v.observaciones && (
+                  <div className="flex items-start gap-1.5 mt-1.5 p-2 bg-white rounded border border-gray-100">
+                    <MessageSquare className="w-3 h-3 text-gray-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-gray-500 italic">{v.observaciones}</p>
+                  </div>
+                )}
               </div>
             </div>
             {v.is_current && (
-              <span className="text-xs text-indigo-600 font-medium">
-                Versión actual
-              </span>
+              <span className="text-xs text-indigo-600 font-medium">Versión actual</span>
             )}
           </div>
         ))}
@@ -434,7 +368,6 @@ export function TutorTesinaPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-
   const [filtroEstado, setFiltroEstado] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [selectedVersion, setSelectedVersion] = useState(null)
@@ -442,15 +375,17 @@ export function TutorTesinaPage() {
   const fetchTesinas = async () => {
     setLoading(true)
     try {
-      const response = await api.get('/tutor/tesinas')
-
-      if (Array.isArray(response.data)) {
-        setTesinas(response.data)
-      } else if (response.data.items) {
-        setTesinas(response.data.items)
-      } else {
-        setTesinas([])
-      }
+      const response = await api.get('/tesinas')
+      const items = response.data.items || response.data || []
+      setTesinas(items.map((t) => ({
+        ...t,
+        tesina_id:      t.id,
+        version_id:     t.version_id,
+        version_estado: t.estado_tutor,
+        tesina_estado:  t.estado_tutor,
+        numero_version: t.numero_version || 1,
+        fecha_creacion: t.created_at || t.updated_at,
+      })))
     } catch (err) {
       console.error('Error:', err)
       setError('Error al cargar las tesinas')
@@ -460,9 +395,7 @@ export function TutorTesinaPage() {
     }
   }
 
-  useEffect(() => {
-    fetchTesinas()
-  }, [])
+  useEffect(() => { fetchTesinas() }, [])
 
   const handleRevisar = (tesina) => {
     setSelectedVersion(tesina)
@@ -477,43 +410,27 @@ export function TutorTesinaPage() {
     setTimeout(() => setSuccess(''), 3000)
   }
 
-  const tesinasFiltradas = tesinas.filter((t) => {
-    if (!filtroEstado) return true
-    return t.version_estado === filtroEstado
-  })
+  const tesinasFiltradas = filtroEstado
+    ? tesinas.filter((t) => t.version_estado === filtroEstado)
+    : tesinas
 
   const contadores = {
     total:      tesinas.length,
-    pendientes: tesinas.filter(t => t.version_estado === 'pendiente').length,
-    aprobadas:  tesinas.filter(t => t.version_estado === 'aprobada').length,
-    rechazadas: tesinas.filter(t => t.version_estado === 'rechazada').length,
+    pendientes: tesinas.filter((t) => t.version_estado === 'pendiente').length,
+    aprobadas:  tesinas.filter((t) => t.version_estado === 'aprobada').length,
+    rechazadas: tesinas.filter((t) => t.version_estado === 'rechazada').length,
   }
 
   return (
     <Layout>
-      {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
-          Mis Tesinas Asignadas
-        </h1>
-        <p className="text-gray-600 mt-1">
-          Revisá y evaluá los trabajos de tus alumnos
-        </p>
+        <h1 className="text-3xl font-bold text-gray-900">Mis Tesinas Asignadas</h1>
+        <p className="text-gray-600 mt-1">Revisá y evaluá los trabajos de tus alumnos</p>
       </div>
 
-      {/* Alertas */}
-      {error && (
-        <div className="mb-4">
-          <Alert type="error" message={error} onClose={() => setError('')} />
-        </div>
-      )}
-      {success && (
-        <div className="mb-4">
-          <Alert type="success" message={success} onClose={() => setSuccess('')} />
-        </div>
-      )}
+      {error   && <div className="mb-4"><Alert type="error"   message={error}   onClose={() => setError('')}   /></div>}
+      {success && <div className="mb-4"><Alert type="success" message={success} onClose={() => setSuccess('')} /></div>}
 
-      {/* Tarjetas de resumen */}
       {!loading && tesinas.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
           {[
@@ -530,7 +447,6 @@ export function TutorTesinaPage() {
         </div>
       )}
 
-      {/* Filtros */}
       {!loading && tesinas.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
           <div className="flex flex-wrap gap-2">
@@ -556,11 +472,8 @@ export function TutorTesinaPage() {
         </div>
       )}
 
-      {/* Contenido */}
       {loading ? (
-        <div className="py-12">
-          <Spinner size="lg" />
-        </div>
+        <div className="py-12"><Spinner size="lg" /></div>
       ) : tesinasFiltradas.length === 0 ? (
         <EmptyState
           title={tesinas.length === 0 ? 'Sin tesinas asignadas' : 'Sin resultados'}
@@ -582,14 +495,10 @@ export function TutorTesinaPage() {
         </div>
       )}
 
-      {/* Modal revisar */}
       {showModal && selectedVersion && (
         <RevisarModal
           version={selectedVersion}
-          onClose={() => {
-            setShowModal(false)
-            setSelectedVersion(null)
-          }}
+          onClose={() => { setShowModal(false); setSelectedVersion(null) }}
           onSaved={handleSaved}
         />
       )}

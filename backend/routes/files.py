@@ -1,10 +1,62 @@
-from flask import Blueprint, send_from_directory, jsonify
+from flask import Blueprint, send_from_directory, jsonify, request
 import os
 from config import UPLOAD_FOLDER, UPLOAD_EJEMPLOS_FOLDER
 from utils.jwt_utils import token_required
 from utils.db_utils import get_db
 
 files_bp = Blueprint("files", __name__)
+
+
+def _verificar_acceso_archivo(filename, current_user):
+    """
+    Verifica que el usuario tiene acceso al archivo.
+    Busca tanto en tesinas (nombre_archivo principal) como en versiones_tesinas.
+    Retorna True si tiene acceso, False si no.
+    """
+    if not current_user:
+        return False
+
+    user_id = current_user.get('user_id')  # FIX: era 'id', debe ser 'user_id'
+    role = current_user.get('role')
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+
+        if role == 'alumno':
+            cursor.execute("""
+                SELECT t.id FROM tesinas t
+                WHERE t.alumno_id = ? AND (
+                    t.nombre_archivo = ?
+                    OR EXISTS (
+                        SELECT 1 FROM versiones_tesinas v
+                        WHERE v.tesina_id = t.id AND v.nombre_archivo = ?
+                    )
+                )
+            """, (user_id, filename, filename))
+
+        elif role == 'tutor':
+            cursor.execute("""
+                SELECT t.id FROM tesinas t
+                WHERE t.tutor_id = ? AND t.estado_alumno = 'enviada' AND (
+                    t.nombre_archivo = ?
+                    OR EXISTS (
+                        SELECT 1 FROM versiones_tesinas v
+                        WHERE v.tesina_id = t.id AND v.nombre_archivo = ?
+                    )
+                )
+            """, (user_id, filename, filename))
+
+        else:
+            cursor.execute("""
+                SELECT t.id FROM tesinas t
+                WHERE t.nombre_archivo = ?
+                OR EXISTS (
+                    SELECT 1 FROM versiones_tesinas v
+                    WHERE v.tesina_id = t.id AND v.nombre_archivo = ?
+                )
+            """, (filename, filename))
+
+        return cursor.fetchone() is not None
 
 
 # =========================
@@ -19,42 +71,11 @@ def descargar_archivo_tesina(filename):
         if not os.path.exists(filepath):
             return jsonify({"error": "Archivo no encontrado"}), 404
 
-        # Verificar que el archivo pertenece a una tesina accesible para el usuario
-        current_user = getattr(__import__('flask', fromlist=['request']).request, 'current_user', None)
-        if current_user:
-            user_id = current_user.get('id')
-            role = current_user.get('role')
+        current_user = request.current_user
+        if not _verificar_acceso_archivo(filename, current_user):
+            return jsonify({"error": "No tenés permiso para acceder a este archivo"}), 403
 
-            with get_db() as conn:
-                cursor = conn.cursor()
-
-                if role == 'alumno':
-                    # El alumno solo puede acceder a sus propias tesinas
-                    cursor.execute(
-                        "SELECT id FROM tesinas WHERE nombre_archivo = ? AND alumno_id = ?",
-                        (filename, user_id)
-                    )
-                elif role == 'tutor':
-                    # El tutor solo puede acceder a tesinas que le fueron asignadas
-                    cursor.execute(
-                        "SELECT id FROM tesinas WHERE nombre_archivo = ? AND tutor_id = ?",
-                        (filename, user_id)
-                    )
-                else:
-                    # Admin puede acceder a todo
-                    cursor.execute(
-                        "SELECT id FROM tesinas WHERE nombre_archivo = ?",
-                        (filename,)
-                    )
-
-                if cursor.fetchone() is None:
-                    return jsonify({"error": "No tenés permiso para acceder a este archivo"}), 403
-
-        return send_from_directory(
-            UPLOAD_FOLDER,
-            filename,
-            as_attachment=True
-        )
+        return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
 
     except Exception as e:
         return jsonify({"error": f"Error al descargar archivo: {str(e)}"}), 500
@@ -64,20 +85,16 @@ def descargar_archivo_tesina(filename):
 # Descargar archivo de ejemplo (AUTENTICADO)
 # =========================
 @files_bp.route("/uploads_ejemplos/<path:filename>")
-@token_required  # ← Cualquier usuario autenticado
+@token_required
 def descargar_archivo_ejemplo(filename):
     try:
         filepath = os.path.join(UPLOAD_EJEMPLOS_FOLDER, filename)
-        
+
         if not os.path.exists(filepath):
             return jsonify({"error": "Archivo no encontrado"}), 404
 
-        return send_from_directory(
-            UPLOAD_EJEMPLOS_FOLDER,
-            filename,
-            as_attachment=True
-        )
-    
+        return send_from_directory(UPLOAD_EJEMPLOS_FOLDER, filename, as_attachment=True)
+
     except Exception as e:
         return jsonify({"error": f"Error al descargar archivo: {str(e)}"}), 500
 
@@ -94,38 +111,11 @@ def preview_archivo_tesina(filename):
         if not os.path.exists(filepath):
             return jsonify({"error": "Archivo no encontrado"}), 404
 
-        current_user = getattr(__import__('flask', fromlist=['request']).request, 'current_user', None)
-        if current_user:
-            user_id = current_user.get('id')
-            role = current_user.get('role')
+        current_user = request.current_user
+        if not _verificar_acceso_archivo(filename, current_user):
+            return jsonify({"error": "No tenés permiso para acceder a este archivo"}), 403
 
-            with get_db() as conn:
-                cursor = conn.cursor()
-
-                if role == 'alumno':
-                    cursor.execute(
-                        "SELECT id FROM tesinas WHERE nombre_archivo = ? AND alumno_id = ?",
-                        (filename, user_id)
-                    )
-                elif role == 'tutor':
-                    cursor.execute(
-                        "SELECT id FROM tesinas WHERE nombre_archivo = ? AND tutor_id = ?",
-                        (filename, user_id)
-                    )
-                else:
-                    cursor.execute(
-                        "SELECT id FROM tesinas WHERE nombre_archivo = ?",
-                        (filename,)
-                    )
-
-                if cursor.fetchone() is None:
-                    return jsonify({"error": "No tenés permiso para acceder a este archivo"}), 403
-
-        return send_from_directory(
-            UPLOAD_FOLDER,
-            filename,
-            as_attachment=False
-        )
+        return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=False)
 
     except Exception as e:
         return jsonify({"error": f"Error al mostrar archivo: {str(e)}"}), 500
@@ -139,15 +129,11 @@ def preview_archivo_tesina(filename):
 def preview_archivo_ejemplo(filename):
     try:
         filepath = os.path.join(UPLOAD_EJEMPLOS_FOLDER, filename)
-        
+
         if not os.path.exists(filepath):
             return jsonify({"error": "Archivo no encontrado"}), 404
 
-        return send_from_directory(
-            UPLOAD_EJEMPLOS_FOLDER,
-            filename,
-            as_attachment=False
-        )
-    
+        return send_from_directory(UPLOAD_EJEMPLOS_FOLDER, filename, as_attachment=False)
+
     except Exception as e:
         return jsonify({"error": f"Error al mostrar archivo: {str(e)}"}), 500
