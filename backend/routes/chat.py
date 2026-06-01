@@ -184,10 +184,6 @@ def _limpiar_json_respuesta(texto: str) -> str:
 def analizar_tesina_con_ia(
     texto: str, titulo: str = "", resumen: str = ""
 ) -> tuple[list, str]:
-    """
-    Analiza la tesina con IA (Groq). Retorna (list[dict], str).
-    Si Groq no está disponible o falla, retorna listas vacías.
-    """
     groq = get_groq_client()
     if not groq:
         logger.warning("Groq no disponible; no se puede analizar la tesina")
@@ -651,3 +647,55 @@ def analizar_tesina_problemas(tesina_id):
     except Exception:
         logger.exception("Error al analizar tesina %s", tesina_id)
         return jsonify({"error": "Error al analizar la tesina"}), 500
+    
+# =============================================================================
+# Generador de bibliografía APA con IA
+# =============================================================================
+
+@chat_bp.route("/chat/generar-referencia", methods=["POST"])
+@alumno_o_tutor_required
+def generar_referencia_apa():
+
+    try:
+        data = request.get_json()
+        tipo = data.get('tipo', '')
+        campos = data.get('campos', {})
+
+        if not tipo or not campos:
+            return jsonify({"error": "Datos incompletos"}), 400
+
+        groq = get_groq_client()
+        if not groq:
+            return jsonify({"error": "Servicio de IA no disponible"}), 503
+
+        prompt = f"""Sos un experto en normas APA 7ma edición. 
+Generá UNA referencia bibliográfica en formato APA 7 para la siguiente fuente.
+
+Tipo de fuente: {tipo}
+Datos proporcionados:
+{json.dumps(campos, ensure_ascii=False, indent=2)}
+
+INSTRUCCIONES:
+- Usá estrictamente el formato APA 7ma edición.
+- Si faltan datos opcionales, omitílos sin inventar información.
+- Respondé SOLO con la referencia formateada, sin explicaciones ni texto adicional.
+- Usá cursiva donde corresponda marcándola con asteriscos: *texto en cursiva*
+- Si los autores no siguen el formato Apellido, N., corregílos al formato correcto."""
+
+        response = groq.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[
+                {"role": "system", "content": "Sos un experto en formato APA 7. Respondés SOLO con la referencia formateada, sin texto adicional."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.1,
+            max_tokens=300,
+        )
+
+        referencia = response.choices[0].message.content.strip()
+
+        return jsonify({"referencia": referencia})
+
+    except Exception:
+        logger.exception("Error al generar referencia APA")
+        return jsonify({"error": "Error al generar la referencia"}), 500

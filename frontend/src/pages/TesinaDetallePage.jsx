@@ -640,7 +640,6 @@ export function TesinaDetallePage() {
       {tesina?.estado_tutor === 'aprobada' && (
         <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl">
           <div className="flex items-start gap-3">
-            <span className="text-2xl">🎉</span>
             <div>
               <h4 className="font-semibold text-green-900 mb-1">¡Tesina aprobada!</h4>
               <p className="text-sm text-green-700">
@@ -655,7 +654,6 @@ export function TesinaDetallePage() {
       {tesina?.estado_tutor === 'rechazada' && tesina?.observaciones && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
           <div className="flex items-start gap-3">
-            <span className="text-2xl">❌</span>
             <div className="flex-1">
               <h4 className="font-semibold text-red-900 mb-1">Tesina rechazada</h4>
               <p className="text-sm text-red-700 mb-2">Tu tutor solicitó correcciones:</p>

@@ -205,7 +205,7 @@ export function RegisterPage() {
             {/* Info de rol y activación */}
             <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
               <p className="text-xs text-yellow-800">
-                <span className="font-semibold">⚠️ Importante:</span> Las cuentas nuevas
+                <span className="font-semibold">Importante:</span> Las cuentas nuevas
                 se crean <span className="font-semibold">inactivas</span> y deben ser 
                 activadas por un administrador antes de poder iniciar sesión.
               </p>
@@ -260,8 +260,7 @@ export function RegisterPage() {
             </h3>
             <p className="text-gray-600 mb-6">
               Tu cuenta fue creada correctamente. Un administrador debe activarla 
-              antes de que puedas iniciar sesión. Recibirás un email cuando tu cuenta 
-              sea activada.
+              antes de que puedas iniciar sesión.
             </p>
             <button
               onClick={() => navigate('/login')}
