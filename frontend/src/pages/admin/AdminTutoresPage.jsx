@@ -46,8 +46,8 @@ function TutorModal({ tutor, onClose, onSaved }) {
       return
     }
 
-    if (!isEditing && form.password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres')
+    if (!isEditing && form.password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres')
       return
     }
 
@@ -142,7 +142,7 @@ function TutorModal({ tutor, onClose, onSaved }) {
                 value={form.password}
                 onChange={handleChange}
                 className="input"
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Mínimo 8 caracteres"
                 disabled={loading}
               />
             </div>
@@ -192,8 +192,8 @@ function CambiarPasswordModal({ tutor, onClose, onSaved }) {
     e.preventDefault()
     setError('')
 
-    if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres')
+    if (password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres')
       return
     }
 
@@ -249,7 +249,7 @@ function CambiarPasswordModal({ tutor, onClose, onSaved }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="input"
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Mínimo 8 caracteres"
               required
               disabled={loading}
             />
@@ -409,21 +409,21 @@ export function AdminTutoresPage() {
     }
   }
 
-const handleDelete = async (id) => {
-  if (!confirm('⚠️ ¿Estás seguro de ELIMINAR permanentemente este tutor? Esta acción NO se puede deshacer. Si solo querés desactivarlo temporalmente, usá el botón de activar/desactivar.')) return
+  const handleDelete = async (id) => {
+    if (!confirm('⚠️ ¿Estás seguro de ELIMINAR permanentemente este tutor? Esta acción NO se puede deshacer. Si solo querés desactivarlo temporalmente, usá el botón de activar/desactivar.')) return
 
-  setDeletingId(id)
-  try {
-    await api.delete(`/admin/tutores/${id}`)
-    setSuccess('Tutor eliminado permanentemente')
-    fetchTutores()
-    setTimeout(() => setSuccess(''), 3000)
-  } catch (err) {
-    setError(err.response?.data?.error || 'Error al eliminar el tutor')
-  } finally {
-    setDeletingId(null)
+    setDeletingId(id)
+    try {
+      await api.delete(`/admin/tutores/${id}`)
+      setSuccess('Tutor eliminado permanentemente')
+      fetchTutores()
+      setTimeout(() => setSuccess(''), 3000)
+    } catch (err) {
+      setError(err.response?.data?.error || 'Error al eliminar el tutor')
+    } finally {
+      setDeletingId(null)
+    }
   }
-}
 
   return (
     <Layout>
@@ -610,24 +610,24 @@ const handleDelete = async (id) => {
 
                         {/* Eliminar */}
                         <button
-  onClick={() => handleDelete(tutor.id)}
-  disabled={
-    deletingId === tutor.id ||
-    tutor.total_tesinas > 0
-  }
-  className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-  title={
-    tutor.total_tesinas > 0
-      ? 'No se puede eliminar: tiene tesinas asignadas'
-      : 'Eliminar permanentemente'
-  }
->
-  {deletingId === tutor.id ? (
-    <Loader2 className="w-4 h-4 animate-spin" />
-  ) : (
-    <Trash2 className="w-4 h-4" />
-  )}
-</button>
+                          onClick={() => handleDelete(tutor.id)}
+                          disabled={
+                            deletingId === tutor.id ||
+                            tutor.total_tesinas > 0
+                          }
+                          className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                          title={
+                            tutor.total_tesinas > 0
+                              ? 'No se puede eliminar: tiene tesinas asignadas'
+                              : 'Eliminar permanentemente'
+                          }
+                        >
+                          {deletingId === tutor.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                        </button>
                       </div>
                     </td>
                   </tr>

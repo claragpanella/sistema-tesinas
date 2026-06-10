@@ -38,8 +38,8 @@ function CambiarPasswordForm() {
     setError('')
     setSuccess('')
 
-    if (form.password_nueva.length < 6) {
-      setError('La nueva contraseña debe tener al menos 6 caracteres')
+    if (form.password_nueva.length < 8) {
+      setError('La nueva contraseña debe tener al menos 8 caracteres')
       return
     }
 
@@ -121,7 +121,7 @@ function CambiarPasswordForm() {
             value={form.password_nueva}
             onChange={handleChange}
             className="input"
-            placeholder="Mínimo 6 caracteres"
+            placeholder="Mínimo 8 caracteres"
             required
             disabled={loading}
           />

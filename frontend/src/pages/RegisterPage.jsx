@@ -31,8 +31,8 @@ export function RegisterPage() {
       return
     }
 
-    if (form.password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres')
+    if (form.password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres')
       return
     }
 
@@ -136,7 +136,7 @@ export function RegisterPage() {
                 value={form.password}
                 onChange={handleChange}
                 className="input"
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Mínimo 8 caracteres"
                 required
                 disabled={loading}
               />

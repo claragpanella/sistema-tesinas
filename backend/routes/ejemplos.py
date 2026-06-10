@@ -29,11 +29,9 @@ def obtener_ejemplos():
     - anio_hasta: filtrar hasta año
     """
     try:
-        # Obtener parámetros
         limit, offset = get_pagination_params()
         filters = get_filter_params()
         
-        # Definir filtros permitidos
         allowed_filters = {
             'search': ['titulo', 'nombre_estudiante', 'tutor'],
             'anio': 'anio',
@@ -41,18 +39,15 @@ def obtener_ejemplos():
             'anio_hasta': 'anio_hasta'
         }
         
-        # Construir cláusula WHERE
         where_clause, params = build_where_clause(filters, allowed_filters)
         
         with get_db() as conn:
             cursor = conn.cursor()
 
-            # Contar total con filtros
             count_query = f"SELECT COUNT(*) FROM ejemplos WHERE {where_clause}"
             cursor.execute(count_query, params)
             total_count = cursor.fetchone()[0]
 
-            # Obtener ejemplos paginados y filtrados
             query = f"""
                 SELECT id, titulo, nombre_estudiante, anio, resumen, tutor, nombre_archivo
                 FROM ejemplos
@@ -61,15 +56,11 @@ def obtener_ejemplos():
                 LIMIT ? OFFSET ?
             """
             cursor.execute(query, params + [limit, offset])
-
             rows = cursor.fetchall()
 
         ejemplos = [Ejemplo(*r).to_dict() for r in rows]
-        
-        # Crear respuesta paginada
         response = create_pagination_response(ejemplos, total_count)
         
-        # Agregar filtros aplicados
         if filters:
             response['filters_applied'] = filters
         
@@ -78,27 +69,63 @@ def obtener_ejemplos():
     except Exception as e:
         return jsonify({"error": f"Error al obtener ejemplos: {str(e)}"}), 500
 
+
 # =========================
 # Listar ejemplos (SOLO ADMIN)
 # =========================
 @ejemplos_bp.route("/admin/ejemplos", methods=["GET"])
 @admin_required
 def listar_ejemplos_admin():
+    """
+    Listar ejemplos (admin) con paginación y filtros
+
+    Parámetros de query:
+    - page, per_page
+    - search: buscar en título, nombre_estudiante y tutor
+    - anio_desde, anio_hasta
+    """
     try:
+        limit, offset = get_pagination_params()
+        filters = get_filter_params()
+
+        allowed_filters = {
+            'search': ['titulo', 'nombre_estudiante', 'tutor'],
+            'anio': 'anio',
+            'anio_desde': 'anio_desde',
+            'anio_hasta': 'anio_hasta'
+        }
+
+        where_clause, params = build_where_clause(filters, allowed_filters)
+
         with get_db() as conn:
             cursor = conn.cursor()
 
-            cursor.execute("""
+            cursor.execute(
+                f"SELECT COUNT(*) FROM ejemplos WHERE {where_clause}",
+                params
+            )
+            total_count = cursor.fetchone()[0]
+
+            cursor.execute(
+                f"""
                 SELECT id, titulo, nombre_estudiante, anio, resumen, tutor, nombre_archivo
                 FROM ejemplos
+                WHERE {where_clause}
                 ORDER BY anio DESC
-            """)
-
+                LIMIT ? OFFSET ?
+                """,
+                params + [limit, offset]
+            )
             rows = cursor.fetchall()
 
         ejemplos = [Ejemplo(*r).to_dict() for r in rows]
-        return jsonify(ejemplos)
-    
+        response = create_pagination_response(ejemplos, total_count)
+
+        if filters:
+            response['filters_applied'] = filters
+
+        return jsonify(response)
+
     except Exception as e:
         return jsonify({"error": f"Error al listar ejemplos (admin): {str(e)}"}), 500
 
@@ -169,7 +196,6 @@ def subir_ejemplo():
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (titulo, nombre_estudiante, anio, resumen, tutor, nombre_archivo))
 
-
         return jsonify({"message": "Ejemplo subido correctamente"}), 201
     
     except Exception as e:
@@ -218,7 +244,6 @@ def editar_ejemplo(ejemplo_id):
                 ejemplo_id
             ))
 
-
         return jsonify({"message": "Ejemplo actualizado correctamente"})
     
     except Exception as e:
@@ -250,7 +275,6 @@ def eliminar_ejemplo(ejemplo_id):
                 "DELETE FROM ejemplos WHERE id = ?",
                 (ejemplo_id,)
             )
-
 
         try:
             ruta = os.path.join(UPLOAD_EJEMPLOS_FOLDER, nombre_archivo)

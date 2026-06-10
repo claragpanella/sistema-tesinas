@@ -67,6 +67,9 @@ def build_where_clause(filters, allowed_filters):
     Los nombres de columna se validan contra una whitelist estricta
     para evitar SQL injection.
 
+    Las búsquedas de texto usan NORMALIZE() en ambos lados para ignorar
+    tildes y diferencias de mayúsculas/minúsculas.
+
     Args:
         filters: Diccionario con los filtros activos
         allowed_filters: Diccionario de filtros permitidos para este endpoint
@@ -82,10 +85,12 @@ def build_where_clause(filters, allowed_filters):
             continue
 
         if key == 'search':
-            # Búsqueda en múltiples campos — validar cada campo contra whitelist
+            # Búsqueda en múltiples campos con normalización de tildes
             search_fields = allowed_filters[key]
             validated_fields = [_validate_column(f) for f in search_fields]
-            search_conditions = [f"{field} LIKE ?" for field in validated_fields]
+            search_conditions = [
+                f"NORMALIZE({field}) LIKE NORMALIZE(?)" for field in validated_fields
+            ]
             conditions.append(f"({' OR '.join(search_conditions)})")
             params.extend([f"%{value}%" for _ in validated_fields])
 

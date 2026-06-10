@@ -45,8 +45,8 @@ function UsuarioModal({ usuario, onClose, onSaved }) {
       return
     }
 
-    if (!isEditing && form.password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres')
+    if (!isEditing && form.password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres')
       return
     }
 
@@ -141,7 +141,7 @@ function UsuarioModal({ usuario, onClose, onSaved }) {
                 value={form.password}
                 onChange={handleChange}
                 className="input"
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Mínimo 8 caracteres"
                 disabled={loading}
               />
             </div>
@@ -191,8 +191,8 @@ function CambiarPasswordModal({ usuario, onClose, onSaved }) {
     e.preventDefault()
     setError('')
 
-    if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres')
+    if (password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres')
       return
     }
 
@@ -252,7 +252,7 @@ function CambiarPasswordModal({ usuario, onClose, onSaved }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="input"
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Mínimo 8 caracteres"
               required
               disabled={loading}
             />
