@@ -20,20 +20,20 @@ def listar_usuarios():
     try:
         limit, offset = get_pagination_params()
         filters = get_filter_params()
-        
+
         allowed_filters = {
-            'search': ['nombre', 'email'],
-            'activo': 'activo'
+            'search': ['u.nombre', 'u.email'],
+            'activo': 'u.activo'
         }
-        
+
         where_clause, params = build_where_clause(filters, allowed_filters)
-        
-        where_clause = f"rol = 'alumno' AND ({where_clause})"
-        
+
+        where_clause = f"u.rol = 'alumno' AND ({where_clause})"
+
         with get_db() as conn:
             cursor = conn.cursor()
 
-            count_query = f"SELECT COUNT(*) FROM usuarios WHERE {where_clause}"
+            count_query = f"SELECT COUNT(*) FROM usuarios u WHERE {where_clause}"
             cursor.execute(count_query, params)
             total_count = cursor.fetchone()[0]
 
@@ -64,20 +64,21 @@ def listar_usuarios():
                 })
 
         response = create_pagination_response(usuarios, total_count)
-        
+
         if filters:
             response['filters_applied'] = filters
-        
+
         return jsonify(response)
-    
+
     except Exception as e:
         return jsonify({"error": f"Error al listar usuarios: {str(e)}"}), 500
+
 
 # =========================
 # OBTENER UN USUARIO (SOLO ADMIN)
 # =========================
 @admin_usuarios_bp.route("/admin/usuarios/<int:usuario_id>", methods=["GET"])
-@admin_required  # ← PROTECCIÓN JWT
+@admin_required
 def obtener_usuario(usuario_id):
     try:
         with get_db() as conn:
@@ -102,7 +103,7 @@ def obtener_usuario(usuario_id):
             "rol": usuario["rol"],
             "activo": bool(usuario["activo"])
         })
-    
+
     except Exception as e:
         return jsonify({"error": f"Error al obtener usuario: {str(e)}"}), 500
 
@@ -119,7 +120,7 @@ def crear_usuario():
         nombre = data.get("nombre")
         email = data.get("email")
         password = data.get("password")
-        rol = "alumno"  # ← FORZAR a alumno siempre
+        rol = "alumno"  # forzar siempre
 
         if not all([nombre, email, password]):
             return jsonify({"error": "Faltan datos obligatorios (nombre, email y password son requeridos)"}), 400
@@ -146,11 +147,11 @@ def crear_usuario():
                 VALUES (?, ?, ?, ?, 1)
             """, (nombre, email, hashed_password, rol))
 
-
         return jsonify({"message": "Alumno creado correctamente"}), 201
-    
+
     except Exception as e:
         return jsonify({"error": f"Error al crear alumno: {str(e)}"}), 500
+
 
 # =========================
 # EDITAR USUARIO (SOLO ADMIN)
@@ -202,24 +203,24 @@ def editar_usuario(usuario_id):
             if cursor.rowcount == 0:
                 return jsonify({"error": "No se pudo actualizar el usuario"}), 400
 
-
         return jsonify({"message": "Alumno actualizado correctamente"})
-    
+
     except Exception as e:
         return jsonify({"error": f"Error al editar alumno: {str(e)}"}), 500
+
 
 # =========================
 # ACTIVAR / DESACTIVAR USUARIO (SOLO ADMIN)
 # =========================
 @admin_usuarios_bp.route("/admin/usuarios/<int:usuario_id>/estado", methods=["PUT"])
-@admin_required 
+@admin_required
 def cambiar_estado_usuario(usuario_id):
     try:
         data = request.json
         activo = data.get("activo")
 
-        if activo is None:
-            return jsonify({"error": "Falta el estado"}), 400
+        if activo not in [0, 1, True, False]:
+            return jsonify({"error": "Estado inválido"}), 400
 
         with get_db() as conn:
             cursor = conn.cursor()
@@ -246,10 +247,9 @@ def cambiar_estado_usuario(usuario_id):
             if cursor.rowcount == 0:
                 return jsonify({"error": "No se pudo actualizar el estado"}), 400
 
-
         estado_texto = "activado" if activo else "desactivado"
         return jsonify({"message": f"Usuario {estado_texto} correctamente"})
-    
+
     except Exception as e:
         return jsonify({"error": f"Error al cambiar estado: {str(e)}"}), 500
 
@@ -261,18 +261,16 @@ def cambiar_estado_usuario(usuario_id):
 @admin_required
 def eliminar_usuario(usuario_id):
     """
-    Elimina permanentemente un usuario de la base de datos
-    Solo si no tiene tesinas asociadas
+    Elimina permanentemente un usuario de la base de datos.
+    Solo si no tiene tesinas asociadas.
     """
     try:
-        # No permitir que el admin se elimine a sí mismo
         if usuario_id == request.current_user['user_id']:
             return jsonify({"error": "No podés eliminar tu propia cuenta"}), 400
 
         with get_db() as conn:
             cursor = conn.cursor()
 
-            # Verificar que el usuario existe
             cursor.execute("""
                 SELECT rol
                 FROM usuarios
@@ -283,27 +281,23 @@ def eliminar_usuario(usuario_id):
             if not usuario:
                 return jsonify({"error": "Usuario no encontrado"}), 404
 
-            # No permitir eliminar admins
             if usuario["rol"] == "admin":
                 return jsonify({"error": "No se puede eliminar un usuario administrador"}), 403
 
-            # Verificar si tiene tesinas asociadas (como alumno o tutor)
             cursor.execute("""
                 SELECT COUNT(*) FROM tesinas 
                 WHERE alumno_id = ? OR tutor_id = ?
             """, (usuario_id, usuario_id))
-            
-            count = cursor.fetchone()[0]
-            if count > 0:
+
+            if cursor.fetchone()[0] > 0:
                 return jsonify({
                     "error": "No se puede eliminar: el usuario tiene tesinas asociadas"
                 }), 400
 
-            # ELIMINAR permanentemente
             cursor.execute("DELETE FROM usuarios WHERE id = ?", (usuario_id,))
 
         return jsonify({"message": "Usuario eliminado permanentemente"})
-    
+
     except Exception as e:
         return jsonify({"error": f"Error al eliminar usuario: {str(e)}"}), 500
 
@@ -321,8 +315,8 @@ def cambiar_password(usuario_id):
         if not nueva_password:
             return jsonify({"error": "Falta la nueva contraseña"}), 400
 
-        if len(nueva_password) < 6:
-            return jsonify({"error": "La contraseña debe tener al menos 6 caracteres"}), 400
+        if len(nueva_password) < 8:
+            return jsonify({"error": "La contraseña debe tener al menos 8 caracteres"}), 400
 
         hashed_password = hash_password(nueva_password)
 
@@ -348,8 +342,7 @@ def cambiar_password(usuario_id):
                 WHERE id = ?
             """, (hashed_password, usuario_id))
 
-
         return jsonify({"message": "Contraseña actualizada correctamente"})
-    
+
     except Exception as e:
         return jsonify({"error": f"Error al cambiar contraseña: {str(e)}"}), 500

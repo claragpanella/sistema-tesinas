@@ -9,14 +9,15 @@ pautas_bp = Blueprint("pautas", __name__)
 # LISTAR TODAS LAS PAUTAS AGRUPADAS (AUTENTICADO)
 # =========================
 @pautas_bp.route("/", methods=["GET"])
-@token_required  # ← Cualquier usuario autenticado
+@token_required
 def listar_pautas():
     try:
         with get_db() as conn:
             cursor = conn.cursor()
 
             cursor.execute("""
-                SELECT c.id, c.nombre, p.id, p.titulo, p.descripcion, p.enlace_externo
+                SELECT c.id AS cat_id, c.nombre AS cat_nombre,
+                       p.id AS p_id, p.titulo, p.descripcion, p.enlace_externo
                 FROM categorias_pautas c
                 LEFT JOIN pautas p ON p.categoria_id = c.id
                 ORDER BY c.orden, p.orden
@@ -27,30 +28,25 @@ def listar_pautas():
         resultado = {}
 
         for row in datos:
-            cat_id = row[0]
-            cat_nombre = row[1]
-            p_id = row[2]
-            titulo = row[3]
-            descripcion = row[4]
-            enlace = row[5]
+            cat_nombre = row["cat_nombre"]
 
             if cat_nombre not in resultado:
                 resultado[cat_nombre] = {
-                    "id": cat_id,
+                    "id":     row["cat_id"],
                     "nombre": cat_nombre,
                     "pautas": []
                 }
 
-            if p_id:
+            if row["p_id"]:
                 resultado[cat_nombre]["pautas"].append({
-                    "id": p_id,
-                    "titulo": titulo,
-                    "descripcion": descripcion,
-                    "enlace_externo": enlace
+                    "id":              row["p_id"],
+                    "titulo":          row["titulo"],
+                    "descripcion":     row["descripcion"],
+                    "enlace_externo":  row["enlace_externo"]
                 })
 
         return jsonify(list(resultado.values()))
-    
+
     except Exception as e:
         return jsonify({"error": f"Error al listar pautas: {str(e)}"}), 500
 
@@ -70,18 +66,18 @@ def listar_categorias():
                 FROM categorias_pautas
                 ORDER BY orden
             """)
-            
+
             categorias = [
                 {
-                    "id": row["id"],
+                    "id":     row["id"],
                     "nombre": row["nombre"],
-                    "orden": row["orden"]
+                    "orden":  row["orden"]
                 }
                 for row in cursor.fetchall()
             ]
 
         return jsonify(categorias)
-    
+
     except Exception as e:
         return jsonify({"error": f"Error al listar categorías: {str(e)}"}), 500
 
@@ -96,7 +92,7 @@ def crear_categoria():
         data = request.json
 
         nombre = data.get("nombre")
-        orden = data.get("orden", 0)
+        orden  = data.get("orden", 0)
 
         if not nombre:
             return jsonify({"error": "Falta el nombre de la categoría"}), 400
@@ -118,9 +114,8 @@ def crear_categoria():
                 VALUES (?, ?)
             """, (nombre, orden))
 
-
         return jsonify({"message": "Categoría creada correctamente"}), 201
-    
+
     except Exception as e:
         return jsonify({"error": f"Error al crear categoría: {str(e)}"}), 500
 
@@ -135,7 +130,7 @@ def editar_categoria(categoria_id):
         data = request.json
 
         nombre = data.get("nombre")
-        orden = data.get("orden")
+        orden  = data.get("orden", 0)  # default 0 si no viene en el payload
 
         if not nombre:
             return jsonify({"error": "Falta el nombre de la categoría"}), 400
@@ -168,9 +163,8 @@ def editar_categoria(categoria_id):
                 WHERE id = ?
             """, (nombre, orden, categoria_id))
 
-
         return jsonify({"message": "Categoría actualizada correctamente"})
-    
+
     except Exception as e:
         return jsonify({"error": f"Error al editar categoría: {str(e)}"}), 500
 
@@ -204,9 +198,8 @@ def eliminar_categoria(categoria_id):
             if cursor.rowcount == 0:
                 return jsonify({"error": "Categoría no encontrada"}), 404
 
-
         return jsonify({"message": "Categoría eliminada correctamente"})
-    
+
     except Exception as e:
         return jsonify({"error": f"Error al eliminar categoría: {str(e)}"}), 500
 
@@ -240,20 +233,20 @@ def pautas_por_categoria(categoria_id):
 
             pautas = [
                 {
-                    "id": row["id"],
-                    "titulo": row["titulo"],
-                    "descripcion": row["descripcion"],
+                    "id":             row["id"],
+                    "titulo":         row["titulo"],
+                    "descripcion":    row["descripcion"],
                     "enlace_externo": row["enlace_externo"],
-                    "orden": row["orden"]
+                    "orden":          row["orden"]
                 }
                 for row in cursor.fetchall()
             ]
 
         return jsonify({
             "categoria": categoria["nombre"],
-            "pautas": pautas
+            "pautas":    pautas
         })
-    
+
     except Exception as e:
         return jsonify({"error": f"Error al listar pautas de la categoría: {str(e)}"}), 500
 
@@ -280,14 +273,14 @@ def obtener_pauta(pauta_id):
             return jsonify({"error": "Pauta no encontrada"}), 404
 
         return jsonify({
-            "id": pauta["id"],
-            "titulo": pauta["titulo"],
-            "descripcion": pauta["descripcion"],
-            "categoria_id": pauta["categoria_id"],
+            "id":             pauta["id"],
+            "titulo":         pauta["titulo"],
+            "descripcion":    pauta["descripcion"],
+            "categoria_id":   pauta["categoria_id"],
             "enlace_externo": pauta["enlace_externo"],
-            "orden": pauta["orden"]
+            "orden":          pauta["orden"]
         })
-    
+
     except Exception as e:
         return jsonify({"error": f"Error al obtener pauta: {str(e)}"}), 500
 
@@ -301,11 +294,11 @@ def crear_pauta():
     try:
         data = request.json
 
-        titulo = data.get("titulo")
-        descripcion = data.get("descripcion")
+        titulo       = data.get("titulo")
+        descripcion  = data.get("descripcion")
         categoria_id = data.get("categoria_id")
-        enlace = data.get("enlace_externo", "")
-        orden = data.get("orden", 0)
+        enlace       = data.get("enlace_externo", "")
+        orden        = data.get("orden", 0)
 
         if not all([titulo, descripcion, categoria_id]):
             return jsonify({"error": "Faltan datos obligatorios"}), 400
@@ -327,9 +320,8 @@ def crear_pauta():
                 VALUES (?, ?, ?, ?, ?)
             """, (titulo, descripcion, categoria_id, enlace, orden))
 
-
         return jsonify({"message": "Pauta creada correctamente"}), 201
-    
+
     except Exception as e:
         return jsonify({"error": f"Error al crear pauta: {str(e)}"}), 500
 
@@ -343,11 +335,11 @@ def editar_pauta(pauta_id):
     try:
         data = request.json
 
-        titulo = data.get("titulo")
-        descripcion = data.get("descripcion")
+        titulo       = data.get("titulo")
+        descripcion  = data.get("descripcion")
         categoria_id = data.get("categoria_id")
-        enlace = data.get("enlace_externo", "")
-        orden = data.get("orden", 0)
+        enlace       = data.get("enlace_externo", "")
+        orden        = data.get("orden", 0)
 
         if not all([titulo, descripcion, categoria_id]):
             return jsonify({"error": "Faltan datos obligatorios"}), 400
@@ -379,9 +371,8 @@ def editar_pauta(pauta_id):
                 WHERE id = ?
             """, (titulo, descripcion, categoria_id, enlace, orden, pauta_id))
 
-
         return jsonify({"message": "Pauta actualizada correctamente"})
-    
+
     except Exception as e:
         return jsonify({"error": f"Error al editar pauta: {str(e)}"}), 500
 
@@ -401,8 +392,7 @@ def eliminar_pauta(pauta_id):
             if cursor.rowcount == 0:
                 return jsonify({"error": "Pauta no encontrada"}), 404
 
-
         return jsonify({"message": "Pauta eliminada correctamente"})
-    
+
     except Exception as e:
         return jsonify({"error": f"Error al eliminar pauta: {str(e)}"}), 500

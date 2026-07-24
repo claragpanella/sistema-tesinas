@@ -48,9 +48,9 @@ def cambiar_password():
         if not password_actual or not password_nueva:
             return jsonify({"error": "Faltan campos obligatorios"}), 400
 
-        if len(password_nueva) < 6:
+        if len(password_nueva) < 8:
             return jsonify({
-                "error": "La nueva contraseña debe tener al menos 6 caracteres"
+                "error": "La nueva contraseña debe tener al menos 8 caracteres"
             }), 400
 
         with get_db() as conn:

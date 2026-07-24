@@ -195,7 +195,7 @@ export function TesinaListPage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por título, alumno o tutor..."
+              placeholder="Buscar por alumno..."
               className="input pl-9"
             />
           </div>

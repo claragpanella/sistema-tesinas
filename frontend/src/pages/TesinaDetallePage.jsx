@@ -593,88 +593,62 @@ export function TesinaDetallePage() {
       {/* Banner borrador */}
       {isAlumno && tesina?.estado_alumno === 'borrador' && (
         <div className="mb-6 p-6 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl">
-          <div className="flex items-start gap-4">
-            <div className="flex-1">
-              <h3 className="font-bold text-yellow-900 mb-2">Esta tesina está en BORRADOR</h3>
-              <p className="text-sm text-yellow-700 mb-4">Todavía no fue enviada al tutor. Podés:</p>
-              <ul className="text-sm text-yellow-700 mb-4 space-y-1">
-                <li>• Analizarla con el <strong>chat asistente</strong> para detectar problemas</li>
-                <li>• Hacer todas las correcciones que necesites</li>
-                <li>• Subir nuevas versiones</li>
-                <li>• Cuando esté lista, enviarla al tutor para su revisión</li>
-              </ul>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => navigate(`/chat?tesina=${id}&autoanalizar=1`)}
-                  className="px-4 py-2 bg-white border border-yellow-300 text-yellow-700 rounded-lg hover:bg-yellow-50 transition-colors flex items-center gap-2"
-                >
-                  Analizar con el chat
-                </button>
-                <button
-                  onClick={handleEnviarATutor}
-                  disabled={enviando}
-                  className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-                >
-                  {enviando
-                    ? <><Loader2 className="w-4 h-4 animate-spin" />Enviando...</>
-                    : 'Enviar al tutor'
-                  }
-                </button>
-              </div>
-            </div>
+          <h3 className="font-bold text-yellow-900 mb-2">Esta tesina está en BORRADOR</h3>
+          <p className="text-sm text-yellow-700 mb-4">Todavía no fue enviada al tutor. Podés:</p>
+          <ul className="text-sm text-yellow-700 mb-4 space-y-1">
+            <li>• Analizarla con el <strong>chat asistente</strong> para detectar problemas</li>
+            <li>• Hacer todas las correcciones que necesites</li>
+            <li>• Subir nuevas versiones</li>
+            <li>• Cuando esté lista, enviarla al tutor para su revisión</li>
+          </ul>
+          <div className="flex gap-3">
+            <button
+              onClick={() => navigate(`/chat?tesina=${id}&autoanalizar=1`)}
+              className="px-4 py-2 bg-white border border-yellow-300 text-yellow-700 rounded-lg hover:bg-yellow-50 transition-colors flex items-center gap-2"
+            >
+              Analizar con el chat
+            </button>
+            <button
+              onClick={handleEnviarATutor}
+              disabled={enviando}
+              className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {enviando
+                ? <><Loader2 className="w-4 h-4 animate-spin" />Enviando...</>
+                : 'Enviar al tutor'
+              }
+            </button>
           </div>
-        </div>
-      )}
-
-      {/* Banner enviada/pendiente */}
-      {isAlumno && tesina?.estado_alumno === 'enviada' && tesina?.estado_tutor === 'pendiente' && (
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-          <h4 className="font-semibold text-blue-900 mb-1">Tesina enviada al tutor</h4>
-          <p className="text-sm text-blue-700">
-            Tu tesina fue enviada a <strong>{tesina.tutor_nombre || 'tu tutor'}</strong> y está esperando revisión.
-          </p>
         </div>
       )}
 
       {/* Banner aprobada */}
       {tesina?.estado_tutor === 'aprobada' && (
         <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl">
-          <div className="flex items-start gap-3">
-            <div>
-              <h4 className="font-semibold text-green-900 mb-1">¡Tesina aprobada!</h4>
-              <p className="text-sm text-green-700">
-                Felicitaciones, tu tesina fue aprobada por {tesina.tutor_nombre || 'tu tutor'}.
-              </p>
-            </div>
-          </div>
+          <h4 className="font-semibold text-green-900 mb-1">¡Tesina aprobada!</h4>
+          <p className="text-sm text-green-700">
+            Felicitaciones, tu tesina fue aprobada por {tesina.tutor_nombre || 'tu tutor'}.
+          </p>
         </div>
       )}
 
       {/* Banner rechazada */}
-      {tesina?.estado_tutor === 'rechazada' && tesina?.observaciones && (
+      {tesina?.estado_tutor === 'rechazada' && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-          <div className="flex items-start gap-3">
-            <div className="flex-1">
-              <h4 className="font-semibold text-red-900 mb-1">Tesina rechazada</h4>
+          <h4 className="font-semibold text-red-900 mb-1">Tesina rechazada</h4>
+          {tesina?.observaciones && (
+            <>
               <p className="text-sm text-red-700 mb-2">Tu tutor solicitó correcciones:</p>
               <div className="bg-white p-3 rounded border border-red-200">
                 <p className="text-sm text-gray-700 whitespace-pre-wrap">{tesina.observaciones}</p>
               </div>
-              {isAlumno && (
-                <>
-                  <p className="text-xs text-red-600 mt-3">
-                    Realizá las correcciones necesarias y subí una nueva versión.
-                  </p>
-                  <button
-                    onClick={() => navigate(`/chat?tesina=${id}&autoanalizar=1`)}
-                    className="mt-3 px-4 py-2 bg-white border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors flex items-center gap-2 text-sm"
-                  >
-                    Analizar correcciones con el chat
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
+            </>
+          )}
+          {isAlumno && (
+            <p className="text-xs text-red-600 mt-3">
+              Realizá las correcciones necesarias y usá el botón <strong>Reenviar versión</strong> del encabezado.
+            </p>
+          )}
         </div>
       )}
 
@@ -720,35 +694,6 @@ export function TesinaDetallePage() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
               <h2 className="text-sm font-semibold text-gray-500 uppercase mb-3">Resumen</h2>
               <p className="text-sm text-gray-600 leading-relaxed">{tesina.resumen}</p>
-            </div>
-          )}
-
-          {versionActual?.observaciones && (
-            <div className={`rounded-xl p-5 border ${
-              versionActual.estado_tutor === 'rechazada' ? 'bg-red-50 border-red-200'
-              : versionActual.estado_tutor === 'aprobada' ? 'bg-green-50 border-green-200'
-              : 'bg-yellow-50 border-yellow-200'
-            }`}>
-              <h2 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                <MessageSquare className="w-4 h-4" />
-                Observaciones del tutor
-              </h2>
-              <p className="text-sm leading-relaxed">{versionActual.observaciones}</p>
-
-              {puedeReentregar && (
-                <div className="mt-3 pt-3 border-t border-red-200">
-                  <p className="text-xs text-red-600 font-medium">
-                    Tu tesina fue rechazada. Podés reenviar una versión corregida.
-                  </p>
-                  <button
-                    onClick={() => setShowReentregaModal(true)}
-                    className="mt-2 w-full btn btn-danger flex items-center justify-center gap-2 text-sm"
-                  >
-                    <Upload className="w-4 h-4" />
-                    Reenviar versión corregida
-                  </button>
-                </div>
-              )}
             </div>
           )}
         </div>

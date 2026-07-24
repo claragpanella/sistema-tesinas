@@ -13,7 +13,8 @@ import {
   Loader2,
   Upload,
   Search,
-  Calendar
+  Calendar,
+  Download
 } from 'lucide-react'
 
 // =========================
@@ -276,6 +277,7 @@ export function AdminEjemplosPage() {
   const [showModal, setShowModal] = useState(false)
   const [selectedEjemplo, setSelectedEjemplo] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
+  const [downloadingId, setDownloadingId] = useState(null)
 
   const fetchEjemplos = async () => {
     setLoading(true)
@@ -287,7 +289,6 @@ export function AdminEjemplosPage() {
 
       const response = await api.get(`/admin/ejemplos?${params}`)
 
-      // Manejar tanto respuesta paginada como lista simple
       if (response.data.items !== undefined) {
         setEjemplos(response.data.items || [])
         setPagination(response.data.pagination || null)
@@ -355,6 +356,27 @@ export function AdminEjemplosPage() {
       setError(err.response?.data?.error || 'Error al eliminar el ejemplo')
     } finally {
       setDeletingId(null)
+    }
+  }
+
+  const handleDownload = async (ejemplo) => {
+    setDownloadingId(ejemplo.id)
+    try {
+      const response = await api.get(`/uploads_ejemplos/${ejemplo.nombre_archivo}`, {
+        responseType: 'blob'
+      })
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', ejemplo.nombre_archivo)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      setError('Error al descargar el archivo')
+    } finally {
+      setDownloadingId(null)
     }
   }
 
@@ -475,7 +497,21 @@ export function AdminEjemplosPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1">
+                        {/* Descargar */}
+                        <button
+                          onClick={() => handleDownload(ejemplo)}
+                          disabled={downloadingId === ejemplo.id}
+                          className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                          title="Descargar archivo"
+                        >
+                          {downloadingId === ejemplo.id
+                            ? <Loader2 className="w-4 h-4 animate-spin" />
+                            : <Download className="w-4 h-4" />
+                          }
+                        </button>
+
+                        {/* Editar */}
                         <button
                           onClick={() => handleEdit(ejemplo)}
                           className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
@@ -483,6 +519,8 @@ export function AdminEjemplosPage() {
                         >
                           <Pencil className="w-4 h-4" />
                         </button>
+
+                        {/* Eliminar */}
                         <button
                           onClick={() => handleDelete(ejemplo.id)}
                           disabled={deletingId === ejemplo.id}

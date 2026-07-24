@@ -103,12 +103,12 @@ export function LoginPage() {
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              ¿No tienes cuenta?{' '}
+              ¿No tenés cuenta?{' '}
               <Link
                 to="/register"
                 className="text-indigo-600 hover:text-indigo-700 font-medium"
               >
-                Regístrate aquí
+                Registrate
               </Link>
             </p>
           </div>

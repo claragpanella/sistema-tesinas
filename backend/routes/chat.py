@@ -6,7 +6,7 @@ import traceback
 
 from flask import Blueprint, jsonify, request
 
-from config import GROQ_API_KEY
+from config import GROQ_API_KEY, UPLOAD_FOLDER
 from utils.db_utils import get_db
 from utils.jwt_utils import alumno_o_tutor_required
 
@@ -16,11 +16,9 @@ logger = logging.getLogger(__name__)
 chat_bp = Blueprint('chat', __name__)
 
 # ─── Constantes ───────────────────────────────────────────────────────────────
-# Palabras vacías excluidas del análisis de repetición (constante a nivel módulo)
 HISTORIAL_LIMITE = 20  # mensajes del historial enviados a Groq
 
 # ─── Cliente Groq ─────────────────────────────────────────────────────────────
-# Inicializado en None para evitar NameError si la importación falla
 client = None
 USE_GROQ = bool(GROQ_API_KEY)
 
@@ -40,9 +38,6 @@ def get_groq_client():
 
 
 # ─── Extracción de texto ──────────────────────────────────────────────────────
-# Los imports de PyPDF2 y docx se hacen al nivel de módulo para evitar
-# imports repetidos dentro de la función (aunque Python los cachea, es
-# mala práctica y dificulta la detección de dependencias faltantes).
 try:
     import PyPDF2
     _PYPDF2_OK = True
@@ -251,7 +246,6 @@ RESPONDE SOLO CON EL JSON, sin texto adicional."""
     return [], ""
 
 
-
 # =============================================================================
 # Endpoint principal del chat
 # =============================================================================
@@ -264,9 +258,16 @@ def chat_asistente():
         user_role = request.current_user['role']
         data      = request.get_json()
 
-        user_message        = data.get('message', '').strip()
-        tesina_id_frontend  = data.get('tesina_id')
-        conversacion_id     = data.get('conversacion_id')
+        user_message       = data.get('message', '').strip()
+        tesina_id_frontend = data.get('tesina_id')
+        conversacion_id    = data.get('conversacion_id')
+
+        # Castear tesina_id a int si viene como string desde el frontend
+        if tesina_id_frontend is not None:
+            try:
+                tesina_id_frontend = int(tesina_id_frontend)
+            except (ValueError, TypeError):
+                tesina_id_frontend = None
 
         if not user_message:
             return jsonify({"error": "Mensaje vacío"}), 400
@@ -310,7 +311,7 @@ def chat_asistente():
                 tesina = cursor.fetchone()
                 if tesina:
                     tesina_titulo = tesina['titulo']
-                    filepath = os.path.join('uploads', tesina['nombre_archivo'])
+                    filepath = os.path.join(UPLOAD_FOLDER, tesina['nombre_archivo'])
                     if os.path.exists(filepath):
                         file_content = extract_text_from_file(filepath)
                         if file_content:
@@ -382,8 +383,7 @@ def chat_asistente():
 
         if USE_GROQ:
             try:
-                # Usamos el modelo más capaz cuando hay contenido de tesina para analizar
-                model = "llama-3.3-70b-versatile" if tesina_context else "llama-3.1-8b-instant"
+                model   = "llama-3.3-70b-versatile" if tesina_context else "llama-3.1-8b-instant"
                 max_tok = 2048 if tesina_context else 1024
                 response = client.chat.completions.create(
                     model=model,
@@ -438,11 +438,11 @@ def chat_asistente():
             )
 
         return jsonify({
-            "response":              response_text,
-            "tesina_id":             tesina_id,
-            "conversacion_id":       conversacion_id,
-            "nombre_alumno_tesina":  nombre_alumno_tesina,
-            "mode":                  mode,
+            "response":             response_text,
+            "tesina_id":            tesina_id,
+            "conversacion_id":      conversacion_id,
+            "nombre_alumno_tesina": nombre_alumno_tesina,
+            "mode":                 mode,
         })
 
     except Exception:
@@ -524,7 +524,12 @@ def obtener_mensajes(conversacion_id):
                 (conversacion_id,),
             )
             mensajes = [
-                {'id': r['id'], 'role': r['rol'], 'content': r['contenido'], 'created_at': r['created_at']}
+                {
+                    'id':         r['id'],
+                    'role':       r['rol'],
+                    'content':    r['contenido'],
+                    'created_at': r['created_at'],
+                }
                 for r in cursor.fetchall()
             ]
         return jsonify(mensajes)
@@ -610,7 +615,7 @@ def analizar_tesina_problemas(tesina_id):
         if not tesina:
             return jsonify({"error": "Tesina no encontrada o sin permisos"}), 404
 
-        filepath = os.path.join('uploads', tesina['nombre_archivo'])
+        filepath = os.path.join(UPLOAD_FOLDER, tesina['nombre_archivo'])
         if not os.path.exists(filepath):
             return jsonify({"error": "Archivo no encontrado"}), 404
 
@@ -628,13 +633,13 @@ def analizar_tesina_problemas(tesina_id):
         paginas_estimadas = total_palabras // 250
 
         return jsonify({
-            "problemas":        problemas,
-            "resumen":          resumen_analisis,
-            "metodo":           "ia",
+            "problemas":       problemas,
+            "resumen":         resumen_analisis,
+            "metodo":          "ia",
             "estadisticas": {
-                "palabras":           total_palabras,
-                "caracteres":         len(texto_completo),
-                "paginas_estimadas":  paginas_estimadas,
+                "palabras":          total_palabras,
+                "caracteres":        len(texto_completo),
+                "paginas_estimadas": paginas_estimadas,
             },
             "total_problemas": len(problemas),
             "nivel_gravedad": {
@@ -647,7 +652,8 @@ def analizar_tesina_problemas(tesina_id):
     except Exception:
         logger.exception("Error al analizar tesina %s", tesina_id)
         return jsonify({"error": "Error al analizar la tesina"}), 500
-    
+
+
 # =============================================================================
 # Generador de bibliografía APA con IA
 # =============================================================================
@@ -655,14 +661,16 @@ def analizar_tesina_problemas(tesina_id):
 @chat_bp.route("/chat/generar-referencia", methods=["POST"])
 @alumno_o_tutor_required
 def generar_referencia_apa():
-
     try:
-        data = request.get_json()
-        tipo = data.get('tipo', '')
+        data   = request.get_json()
+        tipo   = data.get('tipo', '').strip()
         campos = data.get('campos', {})
 
-        if not tipo or not campos:
-            return jsonify({"error": "Datos incompletos"}), 400
+        if not tipo:
+            return jsonify({"error": "Falta el tipo de fuente"}), 400
+
+        if not campos or not any(v for v in campos.values() if str(v).strip()):
+            return jsonify({"error": "Debés completar al menos un campo"}), 400
 
         groq = get_groq_client()
         if not groq:
@@ -685,15 +693,17 @@ INSTRUCCIONES:
         response = groq.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[
-                {"role": "system", "content": "Sos un experto en formato APA 7. Respondés SOLO con la referencia formateada, sin texto adicional."},
-                {"role": "user", "content": prompt}
+                {
+                    "role": "system",
+                    "content": "Sos un experto en formato APA 7. Respondés SOLO con la referencia formateada, sin texto adicional.",
+                },
+                {"role": "user", "content": prompt},
             ],
             temperature=0.1,
             max_tokens=300,
         )
 
         referencia = response.choices[0].message.content.strip()
-
         return jsonify({"referencia": referencia})
 
     except Exception:
