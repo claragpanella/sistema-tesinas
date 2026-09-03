@@ -134,7 +134,15 @@ FORMATO DE RESPUESTA:
 - No uses tablas en formato Markdown (líneas con "|").
 - No uses etiquetas HTML como <br>, <b>, <table>, etc.
 - Para listas o comparaciones, usá listas con guiones o texto corrido, con saltos de línea normales.
-- Podés usar **negrita** y *cursiva* en formato Markdown simple."""
+- Podés usar **negrita** y *cursiva* en formato Markdown simple.
+
+DATOS EXACTOS DE NORMAS APA 7ma edición (usá siempre estos valores, no los reformules ni los calcules):
+- Márgenes: 2,54 cm (1 pulgada) en los cuatro lados.
+- Fuente: Times New Roman 12 pt, Calibri 11 pt, Arial 11 pt, Georgia 11 pt o Lucida Sans Unicode 10 pt.
+- Interlineado: doble (2,0) en todo el texto, incluyendo títulos y referencias.
+- Sangría de primera línea de párrafo: 1,27 cm (0,5 pulgadas).
+- Sangría francesa en referencias: 1,27 cm (0,5 pulgadas) en la segunda línea en adelante.
+- Citas textuales largas (40 palabras o más): bloque aparte con sangría de 1,27 cm, sin comillas, interlineado doble."""
 
 
 def get_system_prompt(user_role: str) -> str:
