@@ -292,7 +292,6 @@ RESPONDE SOLO CON EL JSON, sin texto adicional."""
             ],
             temperature=0.3,
             max_tokens=2000,
-            reasoning_effort="low",
         )
 
         respuesta_ia = _limpiar_json_respuesta(response.choices[0].message.content)
@@ -451,7 +450,6 @@ def chat_asistente():
                     messages=groq_messages,
                     max_tokens=max_tok,
                     temperature=0.7,
-                    reasoning_effort="low",
                 )
                 response_text = response.choices[0].message.content
                 mode = "groq"
@@ -765,7 +763,6 @@ INSTRUCCIONES:
             ],
             temperature=0.1,
             max_tokens=300,
-            reasoning_effort="low",
         )
 
         referencia = convertir_tablas_a_lista(response.choices[0].message.content.strip())
