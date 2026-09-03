@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import rehypeRaw from 'rehype-raw'
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
 import { useSearchParams } from 'react-router-dom'
 import { GeneradorBibliografiaModal } from '../components/Chat/GeneradorBibliografiaModal'
 import {
@@ -593,9 +595,10 @@ export function ChatAsistentePage() {
                       {msg.role === 'user' ? (
                         <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                       ) : (
-                        <div className="text-sm overflow-hidden overflow-x-auto">
+                        <div className="text-sm break-words">
                           <ReactMarkdown
                             remarkPlugins={[remarkGfm]}
+                            rehypePlugins={[rehypeRaw, [rehypeSanitize, defaultSchema]]}
                             components={{
                               p:      ({ node, ...props }) => <p className="mb-3 last:mb-0" {...props} />,
                               ul:     ({ node, ...props }) => <ul className="list-disc ml-5 mb-3 space-y-1" {...props} />,
