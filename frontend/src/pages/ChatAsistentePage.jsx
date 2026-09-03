@@ -3,6 +3,7 @@ import { Layout } from '../components/Layout/Layout'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { useSearchParams } from 'react-router-dom'
 import { GeneradorBibliografiaModal } from '../components/Chat/GeneradorBibliografiaModal'
 import {
@@ -594,6 +595,7 @@ export function ChatAsistentePage() {
                       ) : (
                         <div className="text-sm overflow-hidden overflow-x-auto">
                           <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
                             components={{
                               p:      ({ node, ...props }) => <p className="mb-3 last:mb-0" {...props} />,
                               ul:     ({ node, ...props }) => <ul className="list-disc ml-5 mb-3 space-y-1" {...props} />,
@@ -601,6 +603,14 @@ export function ChatAsistentePage() {
                               li:     ({ node, ...props }) => <li className="leading-relaxed" {...props} />,
                               strong: ({ node, ...props }) => <strong className={`font-bold ${cc.strong}`} {...props} />,
                               code:   ({ node, ...props }) => <code className="bg-gray-200 px-1 rounded text-xs font-mono" {...props} />,
+                              table:  ({ node, ...props }) => (
+                                <div className="overflow-x-auto mb-3">
+                                  <table className="min-w-full border border-gray-200 text-xs" {...props} />
+                                </div>
+                              ),
+                              thead:  ({ node, ...props }) => <thead className="bg-gray-100" {...props} />,
+                              th:     ({ node, ...props }) => <th className="border border-gray-200 px-2 py-1 text-left font-semibold" {...props} />,
+                              td:     ({ node, ...props }) => <td className="border border-gray-200 px-2 py-1 align-top" {...props} />,
                             }}
                           >
                             {msg.content}

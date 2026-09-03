@@ -10,7 +10,7 @@ from .jwt_utils import (
     tutor_required,
     alumno_required
 )
-from .pagination_utils import paginate, get_pagination_params, create_pagination_response
+from .pagination_utils import get_pagination_params, create_pagination_response
 from .filter_utils import get_filter_params, build_where_clause
 
 __all__ = [
@@ -26,7 +26,6 @@ __all__ = [
     'admin_required',
     'tutor_required',
     'alumno_required',
-    'paginate',
     'get_pagination_params',
     'create_pagination_response',
     'get_filter_params',

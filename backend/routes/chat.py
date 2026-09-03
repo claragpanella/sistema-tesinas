@@ -128,7 +128,13 @@ Apellido, N. (Año, día mes). Título del artículo. Nombre del sitio. URL
 # ─── System prompts ───────────────────────────────────────────────────────────
 _BASE_INSTRUCCIONES = """Usá español rioplatense (vos, querés, tenés).
 Limitá tus respuestas exclusivamente a temas académicos. Si el usuario consulta algo fuera de ese ámbito, indicalo de forma clara y breve.
-No inventes información. Si no tenés suficiente contexto, pedí más detalles."""
+No inventes información. Si no tenés suficiente contexto, pedí más detalles.
+
+FORMATO DE RESPUESTA:
+- No uses tablas en formato Markdown (líneas con "|").
+- No uses etiquetas HTML como <br>, <b>, <table>, etc.
+- Para listas o comparaciones, usá listas con guiones o texto corrido, con saltos de línea normales.
+- Podés usar **negrita** y *cursiva* en formato Markdown simple."""
 
 
 def get_system_prompt(user_role: str) -> str:
@@ -170,7 +176,61 @@ Características de tus respuestas:
 {_BASE_INSTRUCCIONES}"""
 
 
-# ─── Análisis de tesina ───────────────────────────────────────────────────────
+# ─── Conversión de tablas a listas ─────────────────────────────────────────────
+def _parsear_fila_tabla(linea: str) -> list[str]:
+    fila = linea.strip()
+    if fila.startswith('|'):
+        fila = fila[1:]
+    if fila.endswith('|'):
+        fila = fila[:-1]
+    return [c.strip() for c in fila.split('|')]
+
+
+def _es_separador_tabla(linea: str) -> bool:
+    return bool(re.match(r'^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$', linea.strip()))
+
+
+def convertir_tablas_a_lista(texto: str) -> str:
+    """
+    Convierte cualquier tabla en formato Markdown (GFM) a una lista con viñetas.
+    El frontend no debe mostrar tablas, así que esto actúa como red de seguridad
+    independientemente de si el modelo respeta o no la instrucción del prompt.
+    """
+    if '|' not in texto:
+        return texto
+
+    lineas = texto.split('\n')
+    resultado = []
+    i = 0
+    n = len(lineas)
+
+    while i < n:
+        linea = lineas[i]
+        if '|' in linea and i + 1 < n and _es_separador_tabla(lineas[i + 1]):
+            headers = _parsear_fila_tabla(linea)
+            i += 2  # saltear encabezado y separador
+
+            while i < n and '|' in lineas[i] and lineas[i].strip():
+                fila = _parsear_fila_tabla(lineas[i])
+                partes = []
+                for h, v in zip(headers, fila):
+                    v = v.strip()
+                    if not v:
+                        continue
+                    partes.append(f"**{h.strip()}:** {v}" if h.strip() else v)
+                if partes:
+                    resultado.append("- " + " — ".join(partes))
+                i += 1
+
+            resultado.append("")
+        else:
+            resultado.append(linea)
+            i += 1
+
+    return "\n".join(resultado)
+
+
+
 def _limpiar_json_respuesta(texto: str) -> str:
     """Elimina bloques de markdown (```json ... ```) de una respuesta."""
     return re.sub(r'^```(?:json)?\s*|\s*```$', '', texto.strip())
@@ -222,7 +282,7 @@ RESPONDE SOLO CON EL JSON, sin texto adicional."""
 
     try:
         response = groq.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             messages=[
                 {
                     "role": "system",
@@ -232,6 +292,7 @@ RESPONDE SOLO CON EL JSON, sin texto adicional."""
             ],
             temperature=0.3,
             max_tokens=2000,
+            reasoning_effort="low",
         )
 
         respuesta_ia = _limpiar_json_respuesta(response.choices[0].message.content)
@@ -383,13 +444,14 @@ def chat_asistente():
 
         if USE_GROQ:
             try:
-                model   = "llama-3.3-70b-versatile" if tesina_context else "llama-3.1-8b-instant"
+                model   = "openai/gpt-oss-120b" if tesina_context else "openai/gpt-oss-20b"
                 max_tok = 2048 if tesina_context else 1024
                 response = client.chat.completions.create(
                     model=model,
                     messages=groq_messages,
                     max_tokens=max_tok,
                     temperature=0.7,
+                    reasoning_effort="low",
                 )
                 response_text = response.choices[0].message.content
                 mode = "groq"
@@ -411,6 +473,8 @@ def chat_asistente():
 
         if response_text is None:
             response_text = get_mock_response(user_message, tesina_titulo)
+
+        response_text = convertir_tablas_a_lista(response_text)
 
         # ── Persistencia ──────────────────────────────────────────────────────
         with get_db() as conn:
@@ -691,7 +755,7 @@ INSTRUCCIONES:
 - Si los autores no siguen el formato Apellido, N., corregílos al formato correcto."""
 
         response = groq.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model="openai/gpt-oss-20b",
             messages=[
                 {
                     "role": "system",
@@ -701,9 +765,10 @@ INSTRUCCIONES:
             ],
             temperature=0.1,
             max_tokens=300,
+            reasoning_effort="low",
         )
 
-        referencia = response.choices[0].message.content.strip()
+        referencia = convertir_tablas_a_lista(response.choices[0].message.content.strip())
         return jsonify({"referencia": referencia})
 
     except Exception:

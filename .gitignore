@@ -1,16 +1,18 @@
-@"
 # Backend
 backend/.env
 backend/database.db
 backend/database_backup.db
 backend/uploads/*
 !backend/uploads/.gitkeep
+backend/uploads_ejemplos/*
+!backend/uploads_ejemplos/.gitkeep
 backend/venv/
 backend/__pycache__/
 backend/**/__pycache__/
 backend/**/*.pyc
 backend/**/*.pyo
 backend/**/*.log
+backend/**/tempCodeRunnerFile.py
 
 # Frontend
 frontend/node_modules/
@@ -37,4 +39,3 @@ yarn-error.log*
 .git/
 *.bak
 *.tmp
-"@ | Out-File -FilePath .gitignore -Encoding utf8

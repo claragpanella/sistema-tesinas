@@ -19,7 +19,12 @@ from routes.chat import chat_bp
 app = Flask(__name__)
 app.config['SECRET_KEY'] = config.SECRET_KEY
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
-  
+
+# Asegura que existan las carpetas de uploads (fuera de __main__ para que
+# también corra bajo Gunicorn en producción, no solo con `python app.py`)
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(UPLOAD_EJEMPLOS_FOLDER, exist_ok=True)
+
 # Configuración de CORS — tres orígenes permitidos
 CORS(app, origins=[
     "http://localhost:5173",
@@ -37,6 +42,7 @@ try:
     from seed_admin import crear_admin
     from seed_data import seed_database
     from seed_pautas import cargar_pautas
+    from seed_ejemplos import seed_ejemplos
     from utils.db_utils import get_db
     
     print("🔄 Verificando base de datos...")
@@ -67,7 +73,17 @@ try:
             cargar_pautas()
         else:
             print(f"✅ Base de datos tiene {count_pautas} pautas")
-            
+
+        # Verificar ejemplos
+        cursor.execute("SELECT COUNT(*) FROM ejemplos")
+        count_ejemplos = cursor.fetchone()[0]
+
+        if count_ejemplos == 0:
+            print("📄 Cargando ejemplos de tesinas...")
+            seed_ejemplos()
+        else:
+            print(f"✅ Base de datos tiene {count_ejemplos} ejemplos")
+
 except Exception as e:
     print(f"⚠️ Error en inicialización de BD: {e}")
     import traceback
