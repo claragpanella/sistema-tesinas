@@ -502,26 +502,37 @@ def reemplazar_archivo_tesina(tesina_id):
                     "error": "Tipo de archivo no permitido. Solo se aceptan: PDF, DOCX, DOC"
                 }), 400
 
-            old_filepath = os.path.join(UPLOAD_FOLDER, tesina['nombre_archivo'])
-            if os.path.exists(old_filepath):
-                try:
-                    os.remove(old_filepath)
-                except Exception:
-                    logger.warning("No se pudo eliminar el archivo anterior: %s", tesina['nombre_archivo'])
+            # Archivo de la versión actual (el que se va a reemplazar)
+            cursor.execute("""
+                SELECT nombre_archivo FROM versiones_tesinas
+                WHERE tesina_id = ? AND is_current = 1
+            """, (tesina_id,))
+            version_actual = cursor.fetchone()
+            archivo_anterior = version_actual['nombre_archivo'] if version_actual else None
 
+            # Primero se guarda el archivo nuevo; el anterior se borra recién
+            # cuando la base de datos ya quedó actualizada
             nuevo_nombre = save_file_safely(file, UPLOAD_FOLDER)
 
             cursor.execute("""
                 UPDATE tesinas
-                SET nombre_archivo = ?
+                SET nombre_archivo = ?, updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             """, (nuevo_nombre, tesina_id))
 
             cursor.execute("""
                 UPDATE versiones_tesinas
                 SET nombre_archivo = ?
-                WHERE tesina_id = ? AND numero_version = 1
+                WHERE tesina_id = ? AND is_current = 1
             """, (nuevo_nombre, tesina_id))
+
+        if archivo_anterior:
+            old_filepath = os.path.join(UPLOAD_FOLDER, archivo_anterior)
+            if os.path.exists(old_filepath):
+                try:
+                    os.remove(old_filepath)
+                except OSError:
+                    logger.warning("No se pudo eliminar el archivo anterior: %s", archivo_anterior)
 
         return jsonify({
             "message": "Archivo actualizado correctamente",
@@ -670,11 +681,12 @@ def reentregar_tesina(tesina_id):
 
             cursor.execute("""
                 UPDATE tesinas
-                SET estado_alumno = 'borrador',
-                    estado_tutor  = 'pendiente',
-                    updated_at    = CURRENT_TIMESTAMP
+                SET nombre_archivo = ?,
+                    estado_alumno  = 'borrador',
+                    estado_tutor   = 'pendiente',
+                    updated_at     = CURRENT_TIMESTAMP
                 WHERE id = ?
-            """, (tesina_id,))
+            """, (nombre_archivo, tesina_id))
 
         return jsonify({"message": "Nueva versión subida", "version": new_version})
 
