@@ -426,25 +426,26 @@ def chat_asistente():
                     alumno_row = cursor.fetchone()
                     nombre_alumno_tesina = alumno_row['nombre'] if alumno_row else None
 
-            # Historial de la conversación
+            # Historial de la conversación: los ÚLTIMOS mensajes, en orden cronológico.
+            # (La pertenencia de la conversación ya se verificó más arriba.)
+            # Se ordena por id porque es único y creciente; created_at tiene
+            # resolución de segundos y el mensaje del usuario y la respuesta
+            # se guardan en el mismo segundo.
             if conversacion_id:
                 cursor.execute(
-                    "SELECT id FROM conversaciones WHERE id = ? AND usuario_id = ?",
-                    (conversacion_id, user_id),
-                )
-                if cursor.fetchone():
-                    cursor.execute(
-                        """SELECT rol, contenido FROM mensajes_chat
+                    """SELECT rol, contenido FROM (
+                           SELECT id, rol, contenido FROM mensajes_chat
                            WHERE conversacion_id = ?
-                           ORDER BY created_at ASC
-                           LIMIT ?""",
-                        (conversacion_id, HISTORIAL_LIMITE),
-                    )
-                    historial_mensajes = [
-                        {"role": "assistant" if r['rol'] == 'assistant' else "user",
-                         "content": r['contenido']}
-                        for r in cursor.fetchall()
-                    ]
+                           ORDER BY id DESC
+                           LIMIT ?
+                       ) ORDER BY id ASC""",
+                    (conversacion_id, HISTORIAL_LIMITE),
+                )
+                historial_mensajes = [
+                    {"role": "assistant" if r['rol'] == 'assistant' else "user",
+                     "content": r['contenido']}
+                    for r in cursor.fetchall()
+                ]
 
         # ── Construcción del system prompt ────────────────────────────────────
         aviso_alumno = (
@@ -559,7 +560,7 @@ def listar_conversaciones():
                     COUNT(m.id) AS total_mensajes,
                     (SELECT contenido FROM mensajes_chat
                      WHERE conversacion_id = c.id
-                     ORDER BY created_at DESC LIMIT 1) AS ultimo_mensaje
+                     ORDER BY id DESC LIMIT 1) AS ultimo_mensaje
                 FROM conversaciones c
                 LEFT JOIN tesinas t ON c.tesina_id = t.id
                 LEFT JOIN mensajes_chat m ON m.conversacion_id = c.id
@@ -616,7 +617,7 @@ def obtener_mensajes(conversacion_id):
                 """SELECT id, rol, contenido, created_at
                    FROM mensajes_chat
                    WHERE conversacion_id = ?
-                   ORDER BY created_at ASC""",
+                   ORDER BY id ASC""",
                 (conversacion_id,),
             )
             mensajes = [
