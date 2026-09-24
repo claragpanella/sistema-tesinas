@@ -76,6 +76,29 @@ def extract_text_from_file(filepath: str) -> str | None:
         return None
 
 
+# ─── Control de acceso a tesinas ─────────────────────────────────────────────
+def obtener_tesina_autorizada(cursor, tesina_id: int, user_id: int, user_role: str):
+    """
+    Devuelve la tesina (titulo, resumen, nombre_archivo, alumno_id) solo si el
+    usuario tiene permiso para verla; si no, devuelve None.
+    - Alumno: solo sus propias tesinas.
+    - Tutor:  solo las que tiene asignadas y que el alumno ya envió.
+    - Admin:  cualquier tesina.
+    """
+    consulta = "SELECT titulo, resumen, nombre_archivo, alumno_id FROM tesinas WHERE id = ?"
+    parametros = [tesina_id]
+
+    if user_role == 'alumno':
+        consulta += " AND alumno_id = ?"
+        parametros.append(user_id)
+    elif user_role == 'tutor':
+        consulta += " AND tutor_id = ? AND estado_alumno = 'enviada'"
+        parametros.append(user_id)
+
+    cursor.execute(consulta, parametros)
+    return cursor.fetchone()
+
+
 # ─── Respuesta mock (fallback sin Groq) ──────────────────────────────────────
 def get_mock_response(user_message: str, tesina_titulo: str | None = None) -> str:
     msg_lower = user_message.lower()
@@ -356,51 +379,49 @@ def chat_asistente():
             row = cursor.fetchone()
             nombre_usuario = row['nombre'] if row else "usuario"
 
-            # Si hay conversación activa, el tesina_id viene de la BD (fuente de verdad)
+            # Si hay conversación activa, tiene que ser del usuario logueado,
+            # y el tesina_id viene de la BD (fuente de verdad)
             if conversacion_id:
                 cursor.execute(
                     "SELECT tesina_id FROM conversaciones WHERE id = ? AND usuario_id = ?",
                     (conversacion_id, user_id),
                 )
                 conv_row = cursor.fetchone()
-                if conv_row:
-                    tesina_id = conv_row['tesina_id']
+                if not conv_row:
+                    return jsonify({"error": "Conversación no encontrada"}), 404
+                tesina_id = conv_row['tesina_id']
                 logger.debug(
                     "tesina_id_frontend=%s conversacion_id=%s tesina_id_final=%s",
                     tesina_id_frontend, conversacion_id, tesina_id,
                 )
 
-            # Contexto de la tesina
+            # Contexto de la tesina (solo si el usuario tiene permiso para verla)
             if tesina_id:
-                cursor.execute(
-                    "SELECT titulo, resumen, nombre_archivo FROM tesinas WHERE id = ?",
-                    (tesina_id,),
-                )
-                tesina = cursor.fetchone()
-                if tesina:
-                    tesina_titulo = tesina['titulo']
-                    filepath = os.path.join(UPLOAD_FOLDER, tesina['nombre_archivo'])
-                    if os.path.exists(filepath):
-                        file_content = extract_text_from_file(filepath)
-                        if file_content:
-                            tesina_context = (
-                                "INSTRUCCIÓN CRÍTICA: Ya tenés acceso COMPLETO al contenido de la tesina. "
-                                "NUNCA le pidas al usuario que comparta, envíe, suba o adjunte su trabajo. "
-                                "NUNCA digas que no tenés acceso al archivo. El texto completo está abajo.\n\n"
-                                f"=== TESINA ===\n"
-                                f"Título: {tesina['titulo']}\n"
-                                f"Resumen: {tesina['resumen']}\n\n"
-                                f"CONTENIDO COMPLETO:\n{file_content[:12000]}\n"
-                                "=== FIN TESINA ===\n\n"
-                                "Analizá ESTE contenido directamente. No necesitás pedir nada más al usuario."
-                            )
+                tesina = obtener_tesina_autorizada(cursor, tesina_id, user_id, user_role)
+                if not tesina:
+                    return jsonify({"error": "Tesina no encontrada o sin permisos"}), 404
+
+                tesina_titulo = tesina['titulo']
+                filepath = os.path.join(UPLOAD_FOLDER, tesina['nombre_archivo'])
+                if os.path.exists(filepath):
+                    file_content = extract_text_from_file(filepath)
+                    if file_content:
+                        tesina_context = (
+                            "INSTRUCCIÓN CRÍTICA: Ya tenés acceso COMPLETO al contenido de la tesina. "
+                            "NUNCA le pidas al usuario que comparta, envíe, suba o adjunte su trabajo. "
+                            "NUNCA digas que no tenés acceso al archivo. El texto completo está abajo.\n\n"
+                            f"=== TESINA ===\n"
+                            f"Título: {tesina['titulo']}\n"
+                            f"Resumen: {tesina['resumen']}\n\n"
+                            f"CONTENIDO COMPLETO:\n{file_content[:12000]}\n"
+                            "=== FIN TESINA ===\n\n"
+                            "Analizá ESTE contenido directamente. No necesitás pedir nada más al usuario."
+                        )
 
                 if user_role == 'tutor':
                     cursor.execute(
-                        """SELECT u.nombre FROM usuarios u
-                           JOIN tesinas t ON t.alumno_id = u.id
-                           WHERE t.id = ?""",
-                        (tesina_id,),
+                        "SELECT nombre FROM usuarios WHERE id = ?",
+                        (tesina['alumno_id'],),
                     )
                     alumno_row = cursor.fetchone()
                     nombre_alumno_tesina = alumno_row['nombre'] if alumno_row else None
@@ -563,6 +584,11 @@ def crear_conversacion():
         titulo    = data.get('titulo', 'Nueva conversación')
         with get_db() as conn:
             cursor = conn.cursor()
+
+            # No permitir asociar la conversación a una tesina ajena
+            if tesina_id and not obtener_tesina_autorizada(cursor, tesina_id, user_id, user_role):
+                return jsonify({"error": "Tesina no encontrada o sin permisos"}), 404
+
             cursor.execute(
                 "INSERT INTO conversaciones (usuario_id, rol_usuario, tesina_id, titulo) VALUES (?, ?, ?, ?)",
                 (user_id, user_role, tesina_id, titulo),
@@ -669,18 +695,7 @@ def analizar_tesina_problemas(tesina_id):
 
         with get_db() as conn:
             cursor = conn.cursor()
-            if user_role == 'alumno':
-                cursor.execute(
-                    "SELECT titulo, resumen, nombre_archivo FROM tesinas WHERE id = ? AND alumno_id = ?",
-                    (tesina_id, user_id),
-                )
-            else:  # tutor
-                cursor.execute(
-                    """SELECT titulo, resumen, nombre_archivo FROM tesinas
-                       WHERE id = ? AND tutor_id = ? AND estado_alumno = 'enviada'""",
-                    (tesina_id, user_id),
-                )
-            tesina = cursor.fetchone()
+            tesina = obtener_tesina_autorizada(cursor, tesina_id, user_id, user_role)
 
         if not tesina:
             return jsonify({"error": "Tesina no encontrada o sin permisos"}), 404
