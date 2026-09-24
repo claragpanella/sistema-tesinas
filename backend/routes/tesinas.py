@@ -688,9 +688,38 @@ def reentregar_tesina(tesina_id):
 @tesinas_bp.route("/tesinas/<int:tesina_id>/versions", methods=["GET"])
 @token_required
 def obtener_versiones_tesina(tesina_id):
+    """
+    Devuelve el historial de versiones de una tesina.
+    - Alumno: solo de sus propias tesinas.
+    - Tutor:  solo de las que tiene asignadas y que el alumno ya envió.
+    - Admin:  de cualquier tesina.
+    """
     try:
+        user = request.current_user
+
         with get_db() as conn:
             cursor = conn.cursor()
+
+            # Verificar que el usuario tenga permiso para ver esta tesina
+            cursor.execute("""
+                SELECT alumno_id, tutor_id, estado_alumno
+                FROM tesinas
+                WHERE id = ?
+            """, (tesina_id,))
+
+            tesina = cursor.fetchone()
+
+            sin_permiso = (
+                not tesina
+                or (user['role'] == 'alumno' and tesina['alumno_id'] != user['user_id'])
+                or (user['role'] == 'tutor' and (
+                    tesina['tutor_id'] != user['user_id']
+                    or tesina['estado_alumno'] != 'enviada'
+                ))
+            )
+
+            if sin_permiso:
+                return jsonify({"error": "Tesina no encontrada o sin permisos"}), 404
 
             cursor.execute("""
                 SELECT
