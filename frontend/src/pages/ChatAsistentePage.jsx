@@ -280,7 +280,11 @@ export function ChatAsistentePage() {
 
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: response.data.response },
+        {
+          role: 'assistant',
+          content: response.data.response,
+          cobertura: response.data.cobertura,
+        },
       ])
 
       if (!conversacionActual && response.data.conversacion_id) {
@@ -336,7 +340,7 @@ export function ChatAsistentePage() {
     if (!pendingAutoAnalisis.current || !selectedTesina) return
     pendingAutoAnalisis.current = false
     sendMessage(
-      'Analizá mi tesina completa y decime qué problemas, errores o aspectos mejorar encontrás.',
+      'Analizá mi tesina y decime qué problemas, errores o aspectos a mejorar encontrás.',
       selectedTesina
     )
   }, [selectedTesina, sendMessage])
@@ -345,7 +349,7 @@ export function ChatAsistentePage() {
   const analizarTesina = useCallback(() => {
     if (!selectedTesina) return
     sendMessage(
-      'Analizá mi tesina completa y decime qué problemas, errores o aspectos mejorar encontrás.',
+      'Analizá mi tesina y decime qué problemas, errores o aspectos a mejorar encontrás.',
       selectedTesina
     )
   }, [selectedTesina, sendMessage])
@@ -618,6 +622,15 @@ export function ChatAsistentePage() {
                           >
                             {msg.content}
                           </ReactMarkdown>
+                          {msg.cobertura?.truncado && (
+                            <p className="mt-3 pt-2 border-t border-gray-200 text-xs text-gray-500 flex items-start gap-1">
+                              <FileText className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                              <span>
+                                Respuesta basada en las primeras {msg.cobertura.paginas_analizadas} de
+                                aproximadamente {msg.cobertura.paginas_totales} páginas de la tesina.
+                              </span>
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>

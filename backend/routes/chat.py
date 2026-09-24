@@ -17,6 +17,8 @@ chat_bp = Blueprint('chat', __name__)
 
 # ─── Constantes ───────────────────────────────────────────────────────────────
 HISTORIAL_LIMITE = 20  # mensajes del historial enviados a Groq
+LIMITE_CARACTERES_TESINA = 12000  # extracto de la tesina que se envía como contexto
+PALABRAS_POR_PAGINA = 250         # estimación estándar para calcular páginas
 
 # ─── Cliente Groq ─────────────────────────────────────────────────────────────
 client = None
@@ -366,6 +368,7 @@ def chat_asistente():
         # ── Una sola conexión para todas las lecturas de este request ─────────
         tesina_titulo        = None
         tesina_context       = ""
+        cobertura            = None
         nombre_alumno_tesina = None
         nombre_usuario       = "usuario"
         tesina_id            = tesina_id_frontend
@@ -406,16 +409,38 @@ def chat_asistente():
                 if os.path.exists(filepath):
                     file_content = extract_text_from_file(filepath)
                     if file_content:
+                        extracto = file_content[:LIMITE_CARACTERES_TESINA]
+                        truncado = len(file_content) > LIMITE_CARACTERES_TESINA
+                        paginas_totales = max(1, round(len(file_content.split()) / PALABRAS_POR_PAGINA))
+                        paginas_analizadas = max(1, round(len(extracto.split()) / PALABRAS_POR_PAGINA))
+                        cobertura = {
+                            "truncado":           truncado,
+                            "paginas_analizadas": paginas_analizadas,
+                            "paginas_totales":    paginas_totales,
+                        }
+
+                        if truncado:
+                            aviso_extracto = (
+                                f"IMPORTANTE: La tesina tiene aproximadamente {paginas_totales} páginas, "
+                                f"pero solo tenés disponibles las primeras {paginas_analizadas} "
+                                "(el extracto de abajo). Basá tus respuestas únicamente en ese extracto. "
+                                "Si te preguntan por una sección que no aparece en él (por ejemplo, "
+                                "conclusiones o bibliografía), aclará que no forma parte del fragmento "
+                                "analizado y no inventes su contenido."
+                            )
+                            etiqueta = "EXTRACTO (primeras páginas)"
+                        else:
+                            aviso_extracto = "Tenés el texto completo de la tesina."
+                            etiqueta = "CONTENIDO COMPLETO"
+
                         tesina_context = (
-                            "INSTRUCCIÓN CRÍTICA: Ya tenés acceso COMPLETO al contenido de la tesina. "
-                            "NUNCA le pidas al usuario que comparta, envíe, suba o adjunte su trabajo. "
-                            "NUNCA digas que no tenés acceso al archivo. El texto completo está abajo.\n\n"
+                            "Ya tenés el contenido de la tesina: no le pidas al usuario que lo "
+                            f"comparta, envíe o adjunte. {aviso_extracto}\n\n"
                             f"=== TESINA ===\n"
                             f"Título: {tesina['titulo']}\n"
                             f"Resumen: {tesina['resumen']}\n\n"
-                            f"CONTENIDO COMPLETO:\n{file_content[:12000]}\n"
-                            "=== FIN TESINA ===\n\n"
-                            "Analizá ESTE contenido directamente. No necesitás pedir nada más al usuario."
+                            f"{etiqueta}:\n{extracto}\n"
+                            "=== FIN TESINA ==="
                         )
 
                 if user_role == 'tutor':
@@ -535,6 +560,7 @@ def chat_asistente():
             "conversacion_id":      conversacion_id,
             "nombre_alumno_tesina": nombre_alumno_tesina,
             "mode":                 mode,
+            "cobertura":            cobertura,
         })
 
     except Exception:
