@@ -605,7 +605,13 @@ def editar_tesina(tesina_id):
 @tesinas_bp.route("/tesinas/<int:tesina_id>/reentrega", methods=["POST"])
 @alumno_required
 def reentregar_tesina(tesina_id):
+    """
+    Permite al alumno subir una nueva versión de SU tesina.
+    No se permite si la tesina ya fue aprobada.
+    """
     try:
+        alumno_id = request.current_user['user_id']
+
         file = request.files.get("file")
         if not file:
             return jsonify({"error": "No se subió archivo"}), 400
@@ -617,6 +623,15 @@ def reentregar_tesina(tesina_id):
 
         with get_db() as conn:
             cursor = conn.cursor()
+
+            # Verificar que la tesina exista y pertenezca al alumno logueado
+            cursor.execute("""
+                SELECT id FROM tesinas
+                WHERE id = ? AND alumno_id = ?
+            """, (tesina_id, alumno_id))
+
+            if not cursor.fetchone():
+                return jsonify({"error": "Tesina no encontrada o no tenés permisos"}), 404
 
             cursor.execute("""
                 SELECT COUNT(*)
