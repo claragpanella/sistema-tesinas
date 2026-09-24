@@ -17,7 +17,7 @@ def login():
     try:
         data = request.json
 
-        email = data.get("email")
+        email = (data.get("email") or "").strip().lower()
         password = data.get("password")
 
         if not email or not password:

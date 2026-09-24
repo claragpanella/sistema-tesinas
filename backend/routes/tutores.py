@@ -136,7 +136,7 @@ def crear_tutor():
         data = request.json
 
         nombre = data.get("nombre")
-        email = data.get("email")
+        email = (data.get("email") or "").strip().lower()
         password = data.get("password")
 
         if not all([nombre, email, password]):
@@ -214,7 +214,7 @@ def editar_tutor(tutor_id):
         data = request.json
 
         nombre = data.get("nombre")
-        email = data.get("email")
+        email = (data.get("email") or "").strip().lower()
 
         if not nombre or not email:
             return jsonify({"error": "Datos incompletos"}), 400

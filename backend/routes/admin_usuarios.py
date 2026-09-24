@@ -118,7 +118,7 @@ def crear_usuario():
         data = request.json
 
         nombre = data.get("nombre")
-        email = data.get("email")
+        email = (data.get("email") or "").strip().lower()
         password = data.get("password")
         rol = "alumno"  # forzar siempre
 
@@ -163,7 +163,7 @@ def editar_usuario(usuario_id):
         data = request.json
 
         nombre = data.get("nombre")
-        email = data.get("email")
+        email = (data.get("email") or "").strip().lower()
 
         if not all([nombre, email]):
             return jsonify({"error": "Faltan datos obligatorios"}), 400
