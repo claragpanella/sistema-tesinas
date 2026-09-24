@@ -303,6 +303,14 @@ def eliminar_tutor(tutor_id):
                     "error": "No se puede eliminar el tutor: tiene tesinas asignadas. Primero reasigna esas tesinas."
                 }), 400
 
+            # Sus conversaciones con el asistente se eliminan junto con el tutor
+            # (los mensajes se borran en cascada)
+            cursor.execute("""
+                DELETE FROM conversaciones
+                WHERE usuario_id = ?
+                AND usuario_id IN (SELECT id FROM usuarios WHERE rol = 'tutor')
+            """, (tutor_id,))
+
             # Ejecutar el borrado permanente
             cursor.execute("""
                 DELETE FROM usuarios

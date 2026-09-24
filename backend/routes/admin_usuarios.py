@@ -294,6 +294,9 @@ def eliminar_usuario(usuario_id):
                     "error": "No se puede eliminar: el usuario tiene tesinas asociadas"
                 }), 400
 
+            # Sus conversaciones con el asistente se eliminan junto con el usuario
+            # (los mensajes se borran en cascada)
+            cursor.execute("DELETE FROM conversaciones WHERE usuario_id = ?", (usuario_id,))
             cursor.execute("DELETE FROM usuarios WHERE id = ?", (usuario_id,))
 
         return jsonify({"message": "Usuario eliminado permanentemente"})

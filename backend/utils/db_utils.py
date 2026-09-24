@@ -22,6 +22,9 @@ def get_db():
     hace commit/rollback automático y CIERRA la conexión al salir.
     """
     conn = sqlite3.connect(DB_PATH)
+    # SQLite no aplica las claves foráneas (ni ON DELETE CASCADE / SET NULL)
+    # a menos que se activen explícitamente en cada conexión.
+    conn.execute("PRAGMA foreign_keys = ON")
     conn.row_factory = sqlite3.Row
     conn.create_function("NORMALIZE", 1, _normalize)
     try:

@@ -52,10 +52,23 @@ def subir_tesina():
         if not tutor_id:
             return jsonify({"error": "El tutor es obligatorio"}), 400
 
-        nombre_unico = save_file_safely(archivo, UPLOAD_FOLDER)
-
         with get_db() as conn:
             cursor = conn.cursor()
+
+            # Verificar que el tutor exista y esté activo
+            cursor.execute("""
+                SELECT activo FROM usuarios
+                WHERE id = ? AND rol = 'tutor'
+            """, (tutor_id,))
+
+            tutor = cursor.fetchone()
+            if not tutor:
+                return jsonify({"error": "Tutor no encontrado"}), 404
+
+            if tutor['activo'] == 0:
+                return jsonify({"error": "El tutor seleccionado está inactivo"}), 400
+
+            nombre_unico = save_file_safely(archivo, UPLOAD_FOLDER)
 
             cursor.execute("""
                 INSERT INTO tesinas 
