@@ -15,7 +15,7 @@ UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
 UPLOAD_EJEMPLOS_FOLDER = os.path.join(BASE_DIR, "uploads_ejemplos")
 
 # Extensiones permitidas para tesinas
-ALLOWED_EXTENSIONS = {'pdf', 'docx', 'doc'}
+ALLOWED_EXTENSIONS = {'pdf', 'docx'}  # .doc (Word 97-2003) no se puede leer con python-docx
 
 # Configuración de Flask
 SECRET_KEY = os.getenv("SECRET_KEY", "default-secret-key-change-in-production")

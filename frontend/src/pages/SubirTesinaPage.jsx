@@ -66,11 +66,11 @@ export function SubirTesinaPage() {
     if (!selectedFile) return
 
     // Validar extensión
-    const allowed = ['pdf', 'docx', 'doc']
+    const allowed = ['pdf', 'docx']
     const extension = selectedFile.name.split('.').pop().toLowerCase()
 
     if (!allowed.includes(extension)) {
-      setError('Solo se permiten archivos PDF, DOCX o DOC')
+      setError('Solo se permiten archivos PDF o DOCX')
       setFile(null)
       e.target.value = ''
       return
@@ -261,7 +261,7 @@ export function SubirTesinaPage() {
                   <input
                     type="file"
                     onChange={handleFileChange}
-                    accept=".pdf,.docx,.doc"
+                    accept=".pdf,.docx"
                     className="hidden"
                     id="file-upload"
                     disabled={loading}
@@ -287,7 +287,7 @@ export function SubirTesinaPage() {
                           o arrastrá el archivo aquí
                         </p>
                         <p className="text-xs text-gray-400 mt-1">
-                          PDF, DOCX o DOC
+                          PDF o DOCX
                         </p>
                       </>
                     )}

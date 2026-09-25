@@ -40,7 +40,7 @@ def subir_tesina():
             return jsonify({"error": "Nombre de archivo vacío"}), 400
 
         if not allowed_file(archivo.filename):
-            return jsonify({"error": "Solo se permiten archivos PDF o DOCX"}), 400
+            return jsonify({"error": "Tipo de archivo no permitido. Solo se aceptan: PDF o DOCX"}), 400
 
         titulo   = request.form.get('titulo', '').strip()
         resumen  = request.form.get('resumen', '').strip()
@@ -512,7 +512,7 @@ def reemplazar_archivo_tesina(tesina_id):
 
             if not allowed_file(file.filename):
                 return jsonify({
-                    "error": "Tipo de archivo no permitido. Solo se aceptan: PDF, DOCX, DOC"
+                    "error": "Tipo de archivo no permitido. Solo se aceptan: PDF o DOCX"
                 }), 400
 
             # Archivo de la versión actual (el que se va a reemplazar)
@@ -642,7 +642,7 @@ def reentregar_tesina(tesina_id):
 
         if not allowed_file(file.filename):
             return jsonify({
-                "error": "Tipo de archivo no permitido. Solo se aceptan: PDF, DOCX, DOC"
+                "error": "Tipo de archivo no permitido. Solo se aceptan: PDF o DOCX"
             }), 400
 
         with get_db() as conn:

@@ -66,7 +66,7 @@ def extract_text_from_file(filepath: str) -> str | None:
             with open(filepath, 'rb') as f:
                 reader = PyPDF2.PdfReader(f)
                 return "".join(page.extract_text() or "" for page in reader.pages)
-        elif ext in ('docx', 'doc'):
+        elif ext == 'docx':
             if not _DOCX_OK:
                 logger.error("python-docx no instalado; no se puede leer el DOCX")
                 return None

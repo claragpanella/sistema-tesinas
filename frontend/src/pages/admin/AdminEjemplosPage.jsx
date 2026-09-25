@@ -42,11 +42,11 @@ function EjemploModal({ ejemplo, onClose, onSaved }) {
     const selectedFile = e.target.files[0]
     if (!selectedFile) return
 
-    const allowed = ['pdf', 'docx', 'doc']
+    const allowed = ['pdf', 'docx']
     const ext = selectedFile.name.split('.').pop().toLowerCase()
 
     if (!allowed.includes(ext)) {
-      setError('Solo se permiten archivos PDF, DOCX o DOC')
+      setError('Solo se permiten archivos PDF o DOCX')
       setFile(null)
       return
     }
@@ -201,7 +201,7 @@ function EjemploModal({ ejemplo, onClose, onSaved }) {
                 <input
                   type="file"
                   onChange={handleFileChange}
-                  accept=".pdf,.docx,.doc"
+                  accept=".pdf,.docx"
                   className="hidden"
                   id="ejemplo-file"
                   disabled={loading}
@@ -222,7 +222,7 @@ function EjemploModal({ ejemplo, onClose, onSaved }) {
                           Seleccionar archivo
                         </span>
                       </p>
-                      <p className="text-xs text-gray-400">PDF, DOCX o DOC</p>
+                      <p className="text-xs text-gray-400">PDF o DOCX</p>
                     </>
                   )}
                 </label>

@@ -23,7 +23,7 @@ import {
 // =========================
 // Utilidades compartidas
 // =========================
-const ALLOWED_EXTENSIONS = ['pdf', 'docx', 'doc']
+const ALLOWED_EXTENSIONS = ['pdf', 'docx']
 
 function getFileExtension(filename) {
   return filename?.split('.').pop().toLowerCase()
@@ -32,7 +32,7 @@ function getFileExtension(filename) {
 function validateFile(file) {
   const ext = getFileExtension(file.name)
   if (!ALLOWED_EXTENSIONS.includes(ext)) {
-    return 'Solo se permiten archivos PDF, DOCX o DOC'
+    return 'Solo se permiten archivos PDF o DOCX'
   }
   return null
 }
@@ -72,7 +72,7 @@ function FileDropzone({ file, onChange, disabled, inputId }) {
       <input
         type="file"
         onChange={onChange}
-        accept=".pdf,.docx,.doc"
+        accept=".pdf,.docx"
         className="hidden"
         id={inputId}
         disabled={disabled}
@@ -89,7 +89,7 @@ function FileDropzone({ file, onChange, disabled, inputId }) {
             <p className="text-sm text-gray-600">
               <span className="text-indigo-600 font-medium">Seleccionar archivo</span>
             </p>
-            <p className="text-xs text-gray-400 mt-1">PDF, DOCX o DOC</p>
+            <p className="text-xs text-gray-400 mt-1">PDF o DOCX</p>
           </>
         )}
       </label>

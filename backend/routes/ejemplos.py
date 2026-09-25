@@ -176,7 +176,7 @@ def subir_ejemplo():
 
         if not allowed_file(file.filename):
             return jsonify({
-                "error": "Tipo de archivo no permitido. Solo se aceptan: PDF, DOCX, DOC"
+                "error": "Tipo de archivo no permitido. Solo se aceptan: PDF o DOCX"
             }), 400
 
         try:
