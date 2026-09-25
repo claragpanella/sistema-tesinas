@@ -1,9 +1,12 @@
+import logging
 from flask import Blueprint, jsonify, request
 from utils.db_utils import get_db
 from utils.jwt_utils import admin_required
 from utils.auth_utils import hash_password
 from utils.pagination_utils import create_pagination_response, get_pagination_params
 from utils.filter_utils import get_filter_params, build_where_clause
+
+logger = logging.getLogger(__name__)
 
 admin_usuarios_bp = Blueprint("admin_usuarios", __name__)
 
@@ -70,8 +73,9 @@ def listar_usuarios():
 
         return jsonify(response)
 
-    except Exception as e:
-        return jsonify({"error": f"Error al listar usuarios: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al listar usuarios")
+        return jsonify({"error": "Error al listar usuarios"}), 500
 
 
 # =========================
@@ -104,8 +108,9 @@ def obtener_usuario(usuario_id):
             "activo": bool(usuario["activo"])
         })
 
-    except Exception as e:
-        return jsonify({"error": f"Error al obtener usuario: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al obtener usuario")
+        return jsonify({"error": "Error al obtener usuario"}), 500
 
 
 # =========================
@@ -115,7 +120,7 @@ def obtener_usuario(usuario_id):
 @admin_required
 def crear_usuario():
     try:
-        data = request.json
+        data = request.get_json(silent=True) or {}
 
         nombre = data.get("nombre")
         email = (data.get("email") or "").strip().lower()
@@ -149,8 +154,9 @@ def crear_usuario():
 
         return jsonify({"message": "Alumno creado correctamente"}), 201
 
-    except Exception as e:
-        return jsonify({"error": f"Error al crear alumno: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al crear alumno")
+        return jsonify({"error": "Error al crear alumno"}), 500
 
 
 # =========================
@@ -160,7 +166,7 @@ def crear_usuario():
 @admin_required
 def editar_usuario(usuario_id):
     try:
-        data = request.json
+        data = request.get_json(silent=True) or {}
 
         nombre = data.get("nombre")
         email = (data.get("email") or "").strip().lower()
@@ -205,8 +211,9 @@ def editar_usuario(usuario_id):
 
         return jsonify({"message": "Alumno actualizado correctamente"})
 
-    except Exception as e:
-        return jsonify({"error": f"Error al editar alumno: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al editar alumno")
+        return jsonify({"error": "Error al editar alumno"}), 500
 
 
 # =========================
@@ -216,7 +223,7 @@ def editar_usuario(usuario_id):
 @admin_required
 def cambiar_estado_usuario(usuario_id):
     try:
-        data = request.json
+        data = request.get_json(silent=True) or {}
         activo = data.get("activo")
 
         if activo not in [0, 1, True, False]:
@@ -250,8 +257,9 @@ def cambiar_estado_usuario(usuario_id):
         estado_texto = "activado" if activo else "desactivado"
         return jsonify({"message": f"Usuario {estado_texto} correctamente"})
 
-    except Exception as e:
-        return jsonify({"error": f"Error al cambiar estado: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al cambiar estado")
+        return jsonify({"error": "Error al cambiar estado"}), 500
 
 
 # =========================
@@ -301,8 +309,9 @@ def eliminar_usuario(usuario_id):
 
         return jsonify({"message": "Usuario eliminado permanentemente"})
 
-    except Exception as e:
-        return jsonify({"error": f"Error al eliminar usuario: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al eliminar usuario")
+        return jsonify({"error": "Error al eliminar usuario"}), 500
 
 
 # =========================
@@ -312,7 +321,7 @@ def eliminar_usuario(usuario_id):
 @admin_required
 def cambiar_password(usuario_id):
     try:
-        data = request.json
+        data = request.get_json(silent=True) or {}
         nueva_password = data.get("password")
 
         if not nueva_password:
@@ -347,5 +356,6 @@ def cambiar_password(usuario_id):
 
         return jsonify({"message": "Contraseña actualizada correctamente"})
 
-    except Exception as e:
-        return jsonify({"error": f"Error al cambiar contraseña: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al cambiar contraseña")
+        return jsonify({"error": "Error al cambiar contraseña"}), 500

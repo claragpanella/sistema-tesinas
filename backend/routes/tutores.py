@@ -1,9 +1,12 @@
+import logging
 from flask import Blueprint, request, jsonify
 from utils.db_utils import get_db
 from utils.jwt_utils import admin_required, token_required
 from utils.auth_utils import hash_password
 from utils.pagination_utils import create_pagination_response, get_pagination_params
 from utils.filter_utils import get_filter_params, build_where_clause
+
+logger = logging.getLogger(__name__)
 
 tutores_bp = Blueprint("tutores", __name__)
 
@@ -36,8 +39,9 @@ def listar_tutores():
             for r in rows
         ])
     
-    except Exception as e:
-        return jsonify({"error": f"Error al listar tutores: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al listar tutores")
+        return jsonify({"error": "Error al listar tutores"}), 500
 
 
 # =========================
@@ -123,8 +127,9 @@ def listar_tutores_admin():
         
         return jsonify(response)
     
-    except Exception as e:
-        return jsonify({"error": f"Error al listar tutores (admin): {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al listar tutores (admin)")
+        return jsonify({"error": "Error al listar tutores (admin)"}), 500
 
 # =========================
 # CREAR TUTOR (SOLO ADMIN)
@@ -133,7 +138,7 @@ def listar_tutores_admin():
 @admin_required
 def crear_tutor():
     try:
-        data = request.json
+        data = request.get_json(silent=True) or {}
 
         nombre = data.get("nombre")
         email = (data.get("email") or "").strip().lower()
@@ -167,8 +172,9 @@ def crear_tutor():
 
         return jsonify({"message": "Tutor creado correctamente"})
     
-    except Exception as e:
-        return jsonify({"error": f"Error al crear tutor: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al crear tutor")
+        return jsonify({"error": "Error al crear tutor"}), 500
 
 
 # =========================
@@ -200,8 +206,9 @@ def obtener_tutor(tutor_id):
             "activo": bool(row["activo"])
         })
     
-    except Exception as e:
-        return jsonify({"error": f"Error al obtener tutor: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al obtener tutor")
+        return jsonify({"error": "Error al obtener tutor"}), 500
 
 
 # =========================
@@ -211,7 +218,7 @@ def obtener_tutor(tutor_id):
 @admin_required
 def editar_tutor(tutor_id):
     try:
-        data = request.json
+        data = request.get_json(silent=True) or {}
 
         nombre = data.get("nombre")
         email = (data.get("email") or "").strip().lower()
@@ -245,8 +252,9 @@ def editar_tutor(tutor_id):
 
         return jsonify({"message": "Tutor actualizado"})
     
-    except Exception as e:
-        return jsonify({"error": f"Error al editar tutor: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al editar tutor")
+        return jsonify({"error": "Error al editar tutor"}), 500
 
 
 # =========================
@@ -256,7 +264,7 @@ def editar_tutor(tutor_id):
 @admin_required
 def cambiar_estado_tutor(tutor_id):
     try:
-        data = request.json
+        data = request.get_json(silent=True) or {}
         activo = data.get("activo")
 
         if activo not in [0, 1, True, False]:
@@ -278,8 +286,9 @@ def cambiar_estado_tutor(tutor_id):
 
         return jsonify({"message": "Estado del tutor actualizado"})
     
-    except Exception as e:
-        return jsonify({"error": f"Error al cambiar estado: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al cambiar estado")
+        return jsonify({"error": "Error al cambiar estado"}), 500
 
 # =========================
 # ELIMINAR TUTOR PERMANENTEMENTE (SOLO ADMIN)
@@ -325,6 +334,7 @@ def eliminar_tutor(tutor_id):
 
         return jsonify({"message": "Tutor eliminado permanentemente de la base de datos"})
     
-    except Exception as e:
+    except Exception:
         # En caso de error de base de datos
-        return jsonify({"error": f"Error al eliminar tutor: {str(e)}"}), 500
+        logger.exception("Error al eliminar tutor")
+        return jsonify({"error": "Error al eliminar tutor"}), 500

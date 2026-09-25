@@ -1,3 +1,4 @@
+import logging
 from flask import Blueprint, request, jsonify
 from utils.db_utils import get_db
 from utils.auth_utils import verify_password, hash_password
@@ -8,6 +9,8 @@ from utils.jwt_utils import (
     token_required
 )
 
+logger = logging.getLogger(__name__)
+
 auth_bp = Blueprint("auth", __name__)
 
 
@@ -15,7 +18,7 @@ auth_bp = Blueprint("auth", __name__)
 def login():
     """Endpoint de login que retorna tokens JWT"""
     try:
-        data = request.json
+        data = request.get_json(silent=True) or {}
 
         email = (data.get("email") or "").strip().lower()
         password = data.get("password")
@@ -58,8 +61,9 @@ def login():
             }
         })
 
-    except Exception as e:
-        return jsonify({"error": f"Error en el login: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error en el login")
+        return jsonify({"error": "Error en el login"}), 500
 
 
 @auth_bp.route("/refresh", methods=["POST"])
@@ -68,7 +72,7 @@ def refresh():
     Endpoint para refrescar el access token usando el refresh token
     """
     try:
-        data = request.json
+        data = request.get_json(silent=True) or {}
         refresh_token = data.get("refresh_token")
 
         if not refresh_token:
@@ -105,8 +109,9 @@ def refresh():
             "access_token": new_access_token
         })
 
-    except Exception as e:
-        return jsonify({"error": f"Error al refrescar token: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al refrescar token")
+        return jsonify({"error": "Error al refrescar token"}), 500
 
 
 @auth_bp.route("/me", methods=["GET"])
@@ -139,8 +144,9 @@ def get_current_user():
             "activo": bool(user["activo"])
         })
 
-    except Exception as e:
-        return jsonify({"error": f"Error al obtener usuario: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al obtener usuario")
+        return jsonify({"error": "Error al obtener usuario"}), 500
 
 
 @auth_bp.route("/register", methods=["POST"])
@@ -150,7 +156,7 @@ def register():
     Los usuarios se crean INACTIVOS y deben ser activados por un admin.
     """
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         nombre = data.get("nombre", "").strip()
         email = data.get("email", "").strip().lower()
         password = data.get("password", "")
@@ -185,5 +191,6 @@ def register():
             "message": "Cuenta creada correctamente. Un administrador debe activar tu cuenta antes de que puedas iniciar sesión."
         }), 201
 
-    except Exception as e:
-        return jsonify({"error": f"Error al registrar usuario: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al registrar usuario")
+        return jsonify({"error": "Error al registrar usuario"}), 500

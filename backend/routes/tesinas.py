@@ -91,9 +91,9 @@ def subir_tesina():
             "estado_tutor": "pendiente"
         }), 201
 
-    except Exception as e:
+    except Exception:
         logger.exception("Error al subir tesina")
-        return jsonify({"error": f"Error al subir la tesina: {str(e)}"}), 500
+        return jsonify({"error": "Error al subir la tesina"}), 500
 
 
 # =========================
@@ -145,9 +145,9 @@ def enviar_tesina_a_tutor(tesina_id):
             "estado_tutor": "pendiente"
         })
 
-    except Exception as e:
+    except Exception:
         logger.exception("Error al enviar tesina al tutor")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Error al enviar la tesina al tutor"}), 500
 
 
 # =========================
@@ -164,8 +164,7 @@ def listar_tesinas():
     """
     try:
         user         = request.current_user
-        page         = int(request.args.get('page', 1))
-        per_page     = int(request.args.get('per_page', 10))
+        per_page, offset = get_pagination_params()  # valida y acota page/per_page
         search       = request.args.get('search', '').strip()
         estado_filter = request.args.get('estado', '')
 
@@ -223,26 +222,15 @@ def listar_tesinas():
             cursor.execute(count_query, params)
             total = cursor.fetchone()[0]
 
-            offset = (page - 1) * per_page
             query  = query_base + where_clause + " ORDER BY t.updated_at DESC LIMIT ? OFFSET ?"
             cursor.execute(query, params + [per_page, offset])
             tesinas = [dict(row) for row in cursor.fetchall()]
 
-        return jsonify({
-            "items": tesinas,
-            "pagination": {
-                "page":        page,
-                "per_page":    per_page,
-                "total_items": total,
-                "total_pages": (total + per_page - 1) // per_page,
-                "has_prev":    page > 1,
-                "has_next":    page * per_page < total
-            }
-        })
+        return jsonify(create_pagination_response(tesinas, total))
 
-    except Exception as e:
+    except Exception:
         logger.exception("Error al listar tesinas")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Error al listar tesinas"}), 500
 
 
 # =========================
@@ -307,9 +295,9 @@ def obtener_tesina(tesina_id):
             "versiones": versiones
         })
 
-    except Exception as e:
+    except Exception:
         logger.exception("Error al obtener tesina %s", tesina_id)
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Error al obtener la tesina"}), 500
 
 
 # =========================
@@ -324,7 +312,7 @@ def revisar_tesina(tesina_id):
     """
     try:
         tutor_id = request.current_user['user_id']
-        data     = request.get_json()
+        data     = request.get_json(silent=True) or {}
 
         nuevo_estado  = data.get('estado_tutor')
         observaciones = data.get('observaciones', '')
@@ -366,9 +354,9 @@ def revisar_tesina(tesina_id):
             "estado_tutor": nuevo_estado
         })
 
-    except Exception as e:
+    except Exception:
         logger.exception("Error al revisar tesina %s", tesina_id)
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Error al revisar la tesina"}), 500
 
 
 # =========================
@@ -379,7 +367,7 @@ def revisar_tesina(tesina_id):
 def guardar_observaciones_version(version_id):
     try:
         tutor_id      = request.current_user['user_id']
-        observaciones = request.json.get("observaciones", "")
+        observaciones = (request.get_json(silent=True) or {}).get("observaciones", "")
 
         with get_db() as conn:
             cursor = conn.cursor()
@@ -412,8 +400,9 @@ def guardar_observaciones_version(version_id):
 
         return jsonify({"message": "Observaciones guardadas en versión y tesina"})
 
-    except Exception as e:
-        return jsonify({"error": f"Error al guardar observaciones: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al guardar observaciones")
+        return jsonify({"error": "Error al guardar observaciones"}), 500
 
 
 # =========================
@@ -428,7 +417,7 @@ def revisar_version(version_id):
     """
     try:
         tutor_id      = request.current_user['user_id']
-        data          = request.get_json()
+        data          = request.get_json(silent=True) or {}
         estado        = data.get("estado")
         observaciones = data.get("observaciones", "")
 
@@ -469,9 +458,9 @@ def revisar_version(version_id):
 
         return jsonify({"message": "Revisión guardada correctamente"})
 
-    except Exception as e:
+    except Exception:
         logger.exception("Error al revisar versión %s", version_id)
-        return jsonify({"error": f"Error al revisar versión: {str(e)}"}), 500
+        return jsonify({"error": "Error al revisar versión"}), 500
 
 
 # =========================
@@ -552,8 +541,9 @@ def reemplazar_archivo_tesina(tesina_id):
             "nuevo_archivo": nuevo_nombre
         })
 
-    except Exception as e:
-        return jsonify({"error": f"Error al actualizar archivo: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al actualizar archivo")
+        return jsonify({"error": "Error al actualizar archivo"}), 500
 
 
 # =========================
@@ -568,7 +558,7 @@ def editar_tesina(tesina_id):
     """
     try:
         alumno_id = request.current_user['user_id']
-        data      = request.get_json()
+        data      = request.get_json(silent=True) or {}
 
         titulo   = data.get("titulo", "").strip()
         resumen  = data.get("resumen", "").strip()
@@ -619,8 +609,9 @@ def editar_tesina(tesina_id):
 
         return jsonify({"message": "Tesina actualizada correctamente"})
 
-    except Exception as e:
-        return jsonify({"error": f"Error al actualizar tesina: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al actualizar tesina")
+        return jsonify({"error": "Error al actualizar tesina"}), 500
 
 
 # =========================
@@ -703,8 +694,9 @@ def reentregar_tesina(tesina_id):
 
         return jsonify({"message": "Nueva versión subida", "version": new_version})
 
-    except Exception as e:
-        return jsonify({"error": f"Error al reenviar tesina: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al reenviar tesina")
+        return jsonify({"error": "Error al reenviar tesina"}), 500
 
 
 # =========================
@@ -774,8 +766,9 @@ def obtener_versiones_tesina(tesina_id):
 
         return jsonify(versiones)
 
-    except Exception as e:
-        return jsonify({"error": f"Error al obtener versiones: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al obtener versiones")
+        return jsonify({"error": "Error al obtener versiones"}), 500
 
 
 # =========================
@@ -834,6 +827,6 @@ def eliminar_tesina(tesina_id):
             "versiones_eliminadas":   versiones_eliminadas
         })
 
-    except Exception as e:
+    except Exception:
         logger.exception("Error al eliminar tesina %s", tesina_id)
-        return jsonify({"error": f"Error al eliminar tesina: {str(e)}"}), 500
+        return jsonify({"error": "Error al eliminar tesina"}), 500

@@ -1,7 +1,10 @@
+import logging
 from flask import Blueprint, request, jsonify
 from utils.db_utils import get_db
 from utils.auth_utils import hash_password, verify_password
 from utils.jwt_utils import token_required
+
+logger = logging.getLogger(__name__)
 
 perfil_bp = Blueprint('perfil', __name__)
 
@@ -12,7 +15,7 @@ perfil_bp = Blueprint('perfil', __name__)
 @token_required
 def actualizar_perfil():
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         nombre = data.get('nombre', '').strip()
         user_id = request.current_user['user_id']
 
@@ -29,8 +32,9 @@ def actualizar_perfil():
 
         return jsonify({"message": "Perfil actualizado correctamente"})
 
-    except Exception as e:
-        return jsonify({"error": f"Error al actualizar perfil: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al actualizar perfil")
+        return jsonify({"error": "Error al actualizar perfil"}), 500
 
 
 # =========================
@@ -40,7 +44,7 @@ def actualizar_perfil():
 @token_required
 def cambiar_password():
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         password_actual = data.get('password_actual', '')
         password_nueva = data.get('password_nueva', '')
         user_id = request.current_user['user_id']
@@ -78,5 +82,6 @@ def cambiar_password():
 
         return jsonify({"message": "Contraseña actualizada correctamente"})
 
-    except Exception as e:
-        return jsonify({"error": f"Error al cambiar contraseña: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al cambiar contraseña")
+        return jsonify({"error": "Error al cambiar contraseña"}), 500

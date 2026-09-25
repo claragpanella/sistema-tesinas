@@ -1,3 +1,4 @@
+import logging
 from flask import Blueprint, request, jsonify
 import os
 from config import UPLOAD_EJEMPLOS_FOLDER, allowed_file
@@ -7,6 +8,8 @@ from utils.file_utils import save_file_safely
 from utils.jwt_utils import token_required, admin_required
 from utils.pagination_utils import create_pagination_response, get_pagination_params
 from utils.filter_utils import get_filter_params, build_where_clause
+
+logger = logging.getLogger(__name__)
 
 ejemplos_bp = Blueprint("ejemplos", __name__)
 
@@ -66,8 +69,9 @@ def obtener_ejemplos():
         
         return jsonify(response)
     
-    except Exception as e:
-        return jsonify({"error": f"Error al obtener ejemplos: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al obtener ejemplos")
+        return jsonify({"error": "Error al obtener ejemplos"}), 500
 
 
 # =========================
@@ -126,8 +130,9 @@ def listar_ejemplos_admin():
 
         return jsonify(response)
 
-    except Exception as e:
-        return jsonify({"error": f"Error al listar ejemplos (admin): {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al listar ejemplos (admin)")
+        return jsonify({"error": "Error al listar ejemplos (admin)"}), 500
 
 
 # =========================
@@ -153,8 +158,9 @@ def obtener_ejemplo_admin(ejemplo_id):
 
         return jsonify(Ejemplo(*row).to_dict())
     
-    except Exception as e:
-        return jsonify({"error": f"Error al obtener ejemplo: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al obtener ejemplo")
+        return jsonify({"error": "Error al obtener ejemplo"}), 500
 
 
 # =========================
@@ -198,8 +204,9 @@ def subir_ejemplo():
 
         return jsonify({"message": "Ejemplo subido correctamente"}), 201
     
-    except Exception as e:
-        return jsonify({"error": f"Error al subir ejemplo: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al subir ejemplo")
+        return jsonify({"error": "Error al subir ejemplo"}), 500
 
 
 # =========================
@@ -209,7 +216,7 @@ def subir_ejemplo():
 @admin_required
 def editar_ejemplo(ejemplo_id):
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
 
         required_fields = ["titulo", "nombre_estudiante", "anio", "tutor"]
         missing_fields = [field for field in required_fields if not data.get(field)]
@@ -246,8 +253,9 @@ def editar_ejemplo(ejemplo_id):
 
         return jsonify({"message": "Ejemplo actualizado correctamente"})
     
-    except Exception as e:
-        return jsonify({"error": f"Error al editar ejemplo: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al editar ejemplo")
+        return jsonify({"error": "Error al editar ejemplo"}), 500
 
 
 # =========================
@@ -281,9 +289,10 @@ def eliminar_ejemplo(ejemplo_id):
             if os.path.exists(ruta):
                 os.remove(ruta)
         except OSError as e:
-            print(f"⚠️ No se pudo eliminar el archivo {nombre_archivo}: {str(e)}")
+            logger.warning("No se pudo eliminar el archivo %s: %s", nombre_archivo, e)
 
         return jsonify({"message": "Ejemplo eliminado correctamente"})
     
-    except Exception as e:
-        return jsonify({"error": f"Error al eliminar ejemplo: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al eliminar ejemplo")
+        return jsonify({"error": "Error al eliminar ejemplo"}), 500

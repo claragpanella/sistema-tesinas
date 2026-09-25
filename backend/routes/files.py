@@ -1,8 +1,11 @@
+import logging
 from flask import Blueprint, send_from_directory, jsonify, request
 import os
 from config import UPLOAD_FOLDER, UPLOAD_EJEMPLOS_FOLDER
 from utils.jwt_utils import token_required
 from utils.db_utils import get_db
+
+logger = logging.getLogger(__name__)
 
 files_bp = Blueprint("files", __name__)
 
@@ -77,8 +80,9 @@ def descargar_archivo_tesina(filename):
 
         return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
 
-    except Exception as e:
-        return jsonify({"error": f"Error al descargar archivo: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al descargar archivo")
+        return jsonify({"error": "Error al descargar archivo"}), 500
 
 
 # =========================
@@ -95,8 +99,9 @@ def descargar_archivo_ejemplo(filename):
 
         return send_from_directory(UPLOAD_EJEMPLOS_FOLDER, filename, as_attachment=True)
 
-    except Exception as e:
-        return jsonify({"error": f"Error al descargar archivo: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al descargar archivo")
+        return jsonify({"error": "Error al descargar archivo"}), 500
 
 
 # =========================
@@ -117,8 +122,9 @@ def preview_archivo_tesina(filename):
 
         return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=False)
 
-    except Exception as e:
-        return jsonify({"error": f"Error al mostrar archivo: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al mostrar archivo")
+        return jsonify({"error": "Error al mostrar archivo"}), 500
 
 
 # =========================
@@ -135,5 +141,6 @@ def preview_archivo_ejemplo(filename):
 
         return send_from_directory(UPLOAD_EJEMPLOS_FOLDER, filename, as_attachment=False)
 
-    except Exception as e:
-        return jsonify({"error": f"Error al mostrar archivo: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al mostrar archivo")
+        return jsonify({"error": "Error al mostrar archivo"}), 500

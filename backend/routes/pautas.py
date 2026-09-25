@@ -1,6 +1,9 @@
+import logging
 from flask import Blueprint, jsonify, request
 from utils.db_utils import get_db
 from utils.jwt_utils import token_required, admin_required
+
+logger = logging.getLogger(__name__)
 
 pautas_bp = Blueprint("pautas", __name__)
 
@@ -47,8 +50,9 @@ def listar_pautas():
 
         return jsonify(list(resultado.values()))
 
-    except Exception as e:
-        return jsonify({"error": f"Error al listar pautas: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al listar pautas")
+        return jsonify({"error": "Error al listar pautas"}), 500
 
 
 # =========================
@@ -78,8 +82,9 @@ def listar_categorias():
 
         return jsonify(categorias)
 
-    except Exception as e:
-        return jsonify({"error": f"Error al listar categorías: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al listar categorías")
+        return jsonify({"error": "Error al listar categorías"}), 500
 
 
 # =========================
@@ -89,7 +94,7 @@ def listar_categorias():
 @admin_required
 def crear_categoria():
     try:
-        data = request.json
+        data = request.get_json(silent=True) or {}
 
         nombre = data.get("nombre")
         orden  = data.get("orden", 0)
@@ -116,8 +121,9 @@ def crear_categoria():
 
         return jsonify({"message": "Categoría creada correctamente"}), 201
 
-    except Exception as e:
-        return jsonify({"error": f"Error al crear categoría: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al crear categoría")
+        return jsonify({"error": "Error al crear categoría"}), 500
 
 
 # =========================
@@ -127,7 +133,7 @@ def crear_categoria():
 @admin_required
 def editar_categoria(categoria_id):
     try:
-        data = request.json
+        data = request.get_json(silent=True) or {}
 
         nombre = data.get("nombre")
         orden  = data.get("orden", 0)  # default 0 si no viene en el payload
@@ -165,8 +171,9 @@ def editar_categoria(categoria_id):
 
         return jsonify({"message": "Categoría actualizada correctamente"})
 
-    except Exception as e:
-        return jsonify({"error": f"Error al editar categoría: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al editar categoría")
+        return jsonify({"error": "Error al editar categoría"}), 500
 
 
 # =========================
@@ -200,8 +207,9 @@ def eliminar_categoria(categoria_id):
 
         return jsonify({"message": "Categoría eliminada correctamente"})
 
-    except Exception as e:
-        return jsonify({"error": f"Error al eliminar categoría: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al eliminar categoría")
+        return jsonify({"error": "Error al eliminar categoría"}), 500
 
 
 # =========================
@@ -247,8 +255,9 @@ def pautas_por_categoria(categoria_id):
             "pautas":    pautas
         })
 
-    except Exception as e:
-        return jsonify({"error": f"Error al listar pautas de la categoría: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al listar pautas de la categoría")
+        return jsonify({"error": "Error al listar pautas de la categoría"}), 500
 
 
 # =========================
@@ -281,8 +290,9 @@ def obtener_pauta(pauta_id):
             "orden":          pauta["orden"]
         })
 
-    except Exception as e:
-        return jsonify({"error": f"Error al obtener pauta: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al obtener pauta")
+        return jsonify({"error": "Error al obtener pauta"}), 500
 
 
 # =========================
@@ -292,7 +302,7 @@ def obtener_pauta(pauta_id):
 @admin_required
 def crear_pauta():
     try:
-        data = request.json
+        data = request.get_json(silent=True) or {}
 
         titulo       = data.get("titulo")
         descripcion  = data.get("descripcion")
@@ -322,8 +332,9 @@ def crear_pauta():
 
         return jsonify({"message": "Pauta creada correctamente"}), 201
 
-    except Exception as e:
-        return jsonify({"error": f"Error al crear pauta: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al crear pauta")
+        return jsonify({"error": "Error al crear pauta"}), 500
 
 
 # =========================
@@ -333,7 +344,7 @@ def crear_pauta():
 @admin_required
 def editar_pauta(pauta_id):
     try:
-        data = request.json
+        data = request.get_json(silent=True) or {}
 
         titulo       = data.get("titulo")
         descripcion  = data.get("descripcion")
@@ -373,8 +384,9 @@ def editar_pauta(pauta_id):
 
         return jsonify({"message": "Pauta actualizada correctamente"})
 
-    except Exception as e:
-        return jsonify({"error": f"Error al editar pauta: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al editar pauta")
+        return jsonify({"error": "Error al editar pauta"}), 500
 
 
 # =========================
@@ -394,5 +406,6 @@ def eliminar_pauta(pauta_id):
 
         return jsonify({"message": "Pauta eliminada correctamente"})
 
-    except Exception as e:
-        return jsonify({"error": f"Error al eliminar pauta: {str(e)}"}), 500
+    except Exception:
+        logger.exception("Error al eliminar pauta")
+        return jsonify({"error": "Error al eliminar pauta"}), 500

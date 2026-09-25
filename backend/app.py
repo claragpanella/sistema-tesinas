@@ -1,7 +1,11 @@
+import logging
+import os
+
 from flask import Flask
 from flask_cors import CORS
-import os
-import config 
+from werkzeug.exceptions import HTTPException
+
+import config
 
 from database import init_db
 from config import UPLOAD_FOLDER, UPLOAD_EJEMPLOS_FOLDER
@@ -15,6 +19,14 @@ from routes.auth import auth_bp
 from routes.admin_usuarios import admin_usuarios_bp
 from routes.perfil import perfil_bp
 from routes.chat import chat_bp
+
+# Los errores se registran en el log del servidor (visible en Render),
+# nunca se envían al cliente
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = config.SECRET_KEY
@@ -119,6 +131,26 @@ def home():
 @app.errorhandler(413)
 def archivo_demasiado_grande(e):
     return {"error": "El archivo supera el tamaño máximo permitido (10 MB)"}, 413
+
+
+@app.errorhandler(HTTPException)
+def error_http(e):
+    """Errores HTTP (404 de ruta inexistente, 405, etc.) en formato JSON."""
+    mensajes = {
+        400: "Solicitud inválida",
+        404: "Recurso no encontrado",
+        405: "Método no permitido",
+        415: "Tipo de contenido no soportado",
+    }
+    return {"error": mensajes.get(e.code, e.name)}, e.code
+
+
+@app.errorhandler(Exception)
+def error_inesperado(e):
+    """Red de seguridad: cualquier error no controlado se registra y
+    se responde con un mensaje genérico, sin exponer detalles internos."""
+    logger.exception("Error no controlado")
+    return {"error": "Error interno del servidor"}, 500
 
 if __name__ == "__main__":
     # Asegura que existan las carpetas de uploads

@@ -349,7 +349,7 @@ def chat_asistente():
     try:
         user_id   = request.current_user['user_id']
         user_role = request.current_user['role']
-        data      = request.get_json()
+        data      = request.get_json(silent=True) or {}
 
         user_message       = data.get('message', '').strip()
         tesina_id_frontend = data.get('tesina_id')
@@ -606,7 +606,7 @@ def crear_conversacion():
     try:
         user_id   = request.current_user['user_id']
         user_role = request.current_user['role']
-        data      = request.get_json()
+        data      = request.get_json(silent=True) or {}
         tesina_id = data.get('tesina_id')
         titulo    = data.get('titulo', 'Nueva conversación')
         with get_db() as conn:
@@ -686,7 +686,7 @@ def eliminar_conversacion(conversacion_id):
 def actualizar_titulo_conversacion(conversacion_id):
     try:
         user_id      = request.current_user['user_id']
-        nuevo_titulo = (request.get_json() or {}).get('titulo', '').strip()
+        nuevo_titulo = (request.get_json(silent=True) or {}).get('titulo', '').strip()
         if not nuevo_titulo:
             return jsonify({"error": "Título vacío"}), 400
         with get_db() as conn:
@@ -774,7 +774,7 @@ def analizar_tesina_problemas(tesina_id):
 @alumno_o_tutor_required
 def generar_referencia_apa():
     try:
-        data   = request.get_json()
+        data   = request.get_json(silent=True) or {}
         tipo   = data.get('tipo', '').strip()
         campos = data.get('campos', {})
 
