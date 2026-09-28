@@ -1,41 +1,46 @@
+# ==========================
 # Backend
+# ==========================
 backend/.env
-backend/database.db
-backend/database_backup.db
+backend/venv/
+backend/**/__pycache__/
+*.pyc
+*.pyo
+
+# Base de datos local y sus copias (contienen datos de usuarios)
+*.db
+*.db.backup
+*.sqlite
+
+# Archivos subidos por los usuarios
 backend/uploads/*
 !backend/uploads/.gitkeep
 backend/uploads_ejemplos/*
 !backend/uploads_ejemplos/.gitkeep
-backend/venv/
-backend/__pycache__/
-backend/**/__pycache__/
-backend/**/*.pyc
-backend/**/*.pyo
-backend/**/*.log
-backend/**/tempCodeRunnerFile.py
 
+# ==========================
 # Frontend
+# ==========================
 frontend/node_modules/
+frontend/dist/
 frontend/.env
 frontend/.env.local
-frontend/dist/
-frontend/build/
 
-# IDEs y Editores
+# ==========================
+# Editores y sistema operativo
+# ==========================
 .vscode/
 .idea/
+**/tempCodeRunnerFile.py
 *.swp
-*.swo
 *~
 .DS_Store
+Thumbs.db
 
-# Logs
+# ==========================
+# Varios
+# ==========================
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Otros
-.git/
 *.bak
 *.tmp
+estructura.txt

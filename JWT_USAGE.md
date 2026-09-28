@@ -9,7 +9,7 @@
 ```json
 {
   "email": "admin@admin.com",
-  "password": "admin123"
+  "password": "tu-contraseña"
 }
 ```
 
