@@ -12,6 +12,23 @@ def test_subir_tesina_queda_en_borrador(client, auth, tesina_de_ana):
     assert len(t["versiones"]) == 1
 
 
+def test_un_alumno_no_puede_subir_una_segunda_tesina(client, auth, usuarios, tesina_de_ana):
+    r = client.post("/upload", headers=auth["ana"], data={
+        "titulo": "Otra tesina", "tutor_id": str(usuarios["tutor"]), "file": archivo_pdf(),
+    })
+    assert r.status_code == 409
+    assert r.get_json()["tesina_id"] == tesina_de_ana
+    # La tesina original no cambió y sigue siendo la única
+    assert len(client.get("/tesinas", headers=auth["ana"]).get_json()["items"]) == 1
+
+
+def test_otro_alumno_si_puede_subir_su_propia_tesina(client, auth, usuarios, tesina_de_ana):
+    r = client.post("/upload", headers=auth["pedro"], data={
+        "titulo": "Tesina de Pedro", "tutor_id": str(usuarios["tutor"]), "file": archivo_pdf(),
+    })
+    assert r.status_code == 201
+
+
 def test_no_se_aceptan_archivos_doc(client, auth, usuarios):
     r = client.post("/upload", headers=auth["ana"], data={
         "titulo": "T", "tutor_id": str(usuarios["tutor"]),

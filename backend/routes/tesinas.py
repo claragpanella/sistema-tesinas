@@ -52,6 +52,16 @@ def subir_tesina():
         with get_db() as conn:
             cursor = conn.cursor()
 
+            # Regla de negocio: cada alumno tiene una sola tesina.
+            # Las correcciones se suben como nuevas versiones de esa misma tesina.
+            cursor.execute("SELECT id FROM tesinas WHERE alumno_id = ?", (alumno_id,))
+            existente = cursor.fetchone()
+            if existente:
+                return jsonify({
+                    "error": "Ya tenés una tesina registrada. Para corregirla, subí una nueva versión desde su detalle.",
+                    "tesina_id": existente["id"],
+                }), 409
+
             # Verificar que el tutor exista y esté activo
             cursor.execute("""
                 SELECT activo FROM usuarios

@@ -4,12 +4,14 @@ import { Layout } from '../components/Layout/Layout'
 import { Alert } from '../components/Common/Alert'
 import { Spinner } from '../components/Common/Spinner'
 import api from '../services/api'
-import { Upload, FileText, Loader2 } from 'lucide-react'
+import { Badge } from '../components/Common/Badge'
+import { Upload, FileText, Loader2, Info, ArrowRight } from 'lucide-react'
 
 export function SubirTesinaPage() {
   const navigate = useNavigate()
 
-  const [yaExiste, setYaExiste] = useState(false)
+  const [tesinaExistente, setTesinaExistente] = useState(null)
+  const [verificando, setVerificando] = useState(true)
   const [tutores, setTutores] = useState([])
   const [loadingTutores, setLoadingTutores] = useState(true)
   const [loading, setLoading] = useState(false)
@@ -23,16 +25,19 @@ export function SubirTesinaPage() {
   })
   const [file, setFile] = useState(null)
 
-    useEffect(() => {
+  // Cada alumno tiene una sola tesina: si ya existe, se muestra en lugar del formulario
+  useEffect(() => {
     const checkExistencia = async () => {
       try {
         const response = await api.get('/tesinas?per_page=1')
         const items = response.data.items || []
         if (items.length > 0) {
-          setYaExiste(true)
+          setTesinaExistente(items[0])
         }
       } catch (err) {
-        console.error('Error:', err)
+        console.error('Error al verificar tesinas existentes:', err)
+      } finally {
+        setVerificando(false)
       }
     }
 
@@ -122,40 +127,64 @@ export function SubirTesinaPage() {
     }
   }
 
-  if (yaExiste) {
+  if (verificando) {
     return (
       <Layout>
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Subir Tesina
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Ya tenés una tesina registrada
-          </p>
+        <Spinner />
+      </Layout>
+    )
+  }
+
+  if (tesinaExistente) {
+    const fecha = tesinaExistente.updated_at
+      ? new Date(tesinaExistente.updated_at.replace(' ', 'T') + 'Z').toLocaleDateString('es-AR')
+      : null
+
+    return (
+      <Layout>
+        <div className="mb-7">
+          <h1 className="text-3xl font-bold text-gray-900">Subir tesina</h1>
+          <p className="text-gray-600 mt-1">Cada alumno tiene una sola tesina en el sistema.</p>
         </div>
 
-        <div className="max-w-2xl">
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-yellow-900 mb-2">
-              ⚠️ Ya tenés una tesina registrada
-            </h3>
-            <p className="text-sm text-yellow-700 mb-4">
-              Solo podés tener una tesina en el sistema. Si necesitás enviar 
-              correcciones o una nueva versión, utilizá la opción 
-              <span className="font-semibold"> "Reenviar versión"</span> desde 
-              el detalle de tu tesina.
-            </p>
+        <div className="max-w-3xl bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+          <div className="flex items-center gap-2.5 px-5 py-4 border-b border-gray-100">
+            <Info className="w-[18px] h-[18px] text-indigo-600" />
+            <h2 className="text-[15px] font-semibold text-gray-900">Ya tenés una tesina cargada</h2>
+          </div>
+
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-4 p-5">
+            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <FileText className="w-6 h-6" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[17px] font-semibold text-gray-900 sm:truncate">{tesinaExistente.titulo}</p>
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] text-gray-500">
+                <Badge
+                  estado_alumno={tesinaExistente.estado_alumno}
+                  estado_tutor={tesinaExistente.estado_tutor}
+                />
+                {tesinaExistente.numero_version && <span>Versión {tesinaExistente.numero_version}</span>}
+                {fecha && <><span aria-hidden="true">·</span><span>Actualizada el {fecha}</span></>}
+              </div>
+            </div>
             <button
-              onClick={() => navigate('/tesinas')}
-              className="btn btn-primary"
+              onClick={() => navigate(`/tesinas/${tesinaExistente.id}`)}
+              className="w-full sm:w-auto flex-shrink-0 min-h-[44px] px-[18px] inline-flex items-center justify-center gap-2 text-sm font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
             >
-              Ver mi tesina
+              Ir a mi tesina
+              <ArrowRight className="w-4 h-4" />
             </button>
+          </div>
+
+          <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 text-[13px] text-gray-600">
+            Para corregirla, entrá a tu tesina y subí una nueva versión desde ahí.
           </div>
         </div>
       </Layout>
     )
-  }  
+  }
+
 
   return (
     <Layout>
