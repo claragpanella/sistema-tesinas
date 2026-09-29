@@ -44,7 +44,7 @@ export function RegisterPage() {
     setLoading(true)
 
     try {
-      const response = await api.post('/register', {
+      await api.post('/register', {
         nombre: form.nombre,
         email: form.email,
         password: form.password,

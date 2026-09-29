@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useDebounce } from '../../hooks/useDebounce'
 import { Layout } from '../../components/Layout/Layout'
 import { Spinner } from '../../components/Common/Spinner'
 import { Alert } from '../../components/Common/Alert'
@@ -312,6 +313,7 @@ export function AdminTutoresPage() {
 
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
+  const busqueda = useDebounce(search, 500)
   const [activoFiltro, setActivoFiltro] = useState('')
 
   const [showModal, setShowModal] = useState(false)
@@ -320,13 +322,13 @@ export function AdminTutoresPage() {
   const [togglingId, setTogglingId] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
 
-  const fetchTutores = async () => {
+  const fetchTutores = useCallback(async () => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
       params.append('page', page)
       params.append('per_page', 10)
-      if (search) params.append('search', search)
+      if (busqueda) params.append('search', busqueda)
       if (activoFiltro !== '') params.append('activo', activoFiltro)
 
       const response = await api.get(`/admin/tutores?${params}`)
@@ -349,19 +351,11 @@ export function AdminTutoresPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [page, busqueda, activoFiltro])
 
   useEffect(() => {
     fetchTutores()
-  }, [page, activoFiltro])
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setPage(1)
-      fetchTutores()
-    }, 500)
-    return () => clearTimeout(timer)
-  }, [search])
+  }, [fetchTutores])
 
   const handleCreate = () => {
     setSelectedTutor(null)
@@ -469,7 +463,7 @@ export function AdminTutoresPage() {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setPage(1) }}
               placeholder="Buscar por nombre o email..."
               className="input pl-9"
             />

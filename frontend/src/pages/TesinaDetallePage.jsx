@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Layout } from '../components/Layout/Layout'
 import { Spinner } from '../components/Common/Spinner'
@@ -456,7 +456,7 @@ function VersionTimeline({ versiones }) {
 export function TesinaDetallePage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { isAlumno, isTutor, isAdmin } = useAuth()
+  const { isAlumno } = useAuth()
 
   const [tesina, setTesina] = useState(null)
   const [versiones, setVersiones] = useState([])
@@ -467,7 +467,7 @@ export function TesinaDetallePage() {
   const [showEditarTesinaModal, setShowEditarTesinaModal] = useState(false)
   const [enviando, setEnviando] = useState(false)
 
-  const fetchDetalle = async () => {
+  const fetchDetalle = useCallback(async () => {
     setLoading(true)
     try {
       const [tResponse, vResponse] = await Promise.all([
@@ -476,12 +476,12 @@ export function TesinaDetallePage() {
       ])
       setTesina(tResponse.data)
       setVersiones(vResponse.data || [])
-    } catch (err) {
+    } catch {
       setError('Error al cargar el detalle de la tesina')
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
 
   const handleEnviarATutor = async () => {
     const confirmacion = window.confirm(
@@ -519,7 +519,7 @@ export function TesinaDetallePage() {
     setTimeout(() => setSuccess(''), 3000)
   }
 
-  useEffect(() => { fetchDetalle() }, [id])
+  useEffect(() => { fetchDetalle() }, [fetchDetalle])
 
   const versionActual = versiones.find(v => v.is_current)
   const puedeReentregar = isAlumno && tesina?.estado_tutor === 'rechazada'

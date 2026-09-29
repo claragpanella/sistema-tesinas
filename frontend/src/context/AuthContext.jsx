@@ -19,8 +19,11 @@ export function AuthProvider({ children }) {
         try {
           setUser(JSON.parse(storedUser));
         } catch (error) {
+          // Datos corruptos en localStorage: se descarta la sesión guardada
           console.error('Error al parsear usuario:', error);
-          logout();
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          localStorage.removeItem('user');
         }
       }
       setLoading(false);
@@ -108,6 +111,9 @@ export function AuthProvider({ children }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+// El hook vive junto al Provider porque comparten el contexto; esta regla solo
+// afecta al recargado en caliente durante el desarrollo.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {

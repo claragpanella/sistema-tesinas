@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useDebounce } from '../hooks/useDebounce'
 import { Layout } from '../components/Layout/Layout'
 import { Spinner } from '../components/Common/Spinner'
 import { Alert } from '../components/Common/Alert'
@@ -14,16 +15,17 @@ export function EjemplosPage() {
 
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
+  const busqueda = useDebounce(search, 500)
   const [anioDesde, setAnioDesde] = useState('')
   const [anioHasta, setAnioHasta] = useState('')
 
-  const fetchEjemplos = async () => {
+  const fetchEjemplos = useCallback(async () => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
       params.append('page', page)
       params.append('per_page', 9)
-      if (search) params.append('search', search)
+      if (busqueda) params.append('search', busqueda)
       if (anioDesde) params.append('anio_desde', anioDesde)
       if (anioHasta) params.append('anio_hasta', anioHasta)
 
@@ -36,14 +38,11 @@ export function EjemplosPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [page, busqueda, anioDesde, anioHasta])
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchEjemplos()
-    }, search ? 500 : 0)
-    return () => clearTimeout(timer)
-  }, [page, search, anioDesde, anioHasta])
+    fetchEjemplos()
+  }, [fetchEjemplos])
 
   const handleDownload = async (filename) => {
     try {
@@ -58,7 +57,7 @@ export function EjemplosPage() {
       link.click()
       link.remove()
       window.URL.revokeObjectURL(url)
-    } catch (err) {
+    } catch {
       setError('Error al descargar el archivo')
     }
   }

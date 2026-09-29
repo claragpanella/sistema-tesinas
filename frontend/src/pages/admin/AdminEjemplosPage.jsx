@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useDebounce } from '../../hooks/useDebounce'
 import { Layout } from '../../components/Layout/Layout'
 import { Spinner } from '../../components/Common/Spinner'
 import { Alert } from '../../components/Common/Alert'
@@ -273,19 +274,20 @@ export function AdminEjemplosPage() {
 
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
+  const busqueda = useDebounce(search, 500)
 
   const [showModal, setShowModal] = useState(false)
   const [selectedEjemplo, setSelectedEjemplo] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
   const [downloadingId, setDownloadingId] = useState(null)
 
-  const fetchEjemplos = async () => {
+  const fetchEjemplos = useCallback(async () => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
       params.append('page', page)
       params.append('per_page', 10)
-      if (search) params.append('search', search)
+      if (busqueda) params.append('search', busqueda)
 
       const response = await api.get(`/admin/ejemplos?${params}`)
 
@@ -307,19 +309,11 @@ export function AdminEjemplosPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [page, busqueda])
 
   useEffect(() => {
     fetchEjemplos()
-  }, [page])
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setPage(1)
-      fetchEjemplos()
-    }, 500)
-    return () => clearTimeout(timer)
-  }, [search])
+  }, [fetchEjemplos])
 
   const handleEdit = (ejemplo) => {
     setSelectedEjemplo(ejemplo)
@@ -373,7 +367,7 @@ export function AdminEjemplosPage() {
       link.click()
       link.remove()
       window.URL.revokeObjectURL(url)
-    } catch (err) {
+    } catch {
       setError('Error al descargar el archivo')
     } finally {
       setDownloadingId(null)
@@ -423,7 +417,7 @@ export function AdminEjemplosPage() {
           <input
             type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
             placeholder="Buscar por título, estudiante o tutor..."
             className="input pl-9"
           />

@@ -5,7 +5,6 @@ import { Spinner } from '../../components/Common/Spinner'
 import { Alert } from '../../components/Common/Alert'
 import { EmptyState } from '../../components/Common/EmptyState'
 import { Badge } from '../../components/Common/Badge'
-import { useAuth } from '../../context/AuthContext'
 import api from '../../services/api'
 import {
   FileText,
@@ -362,8 +361,6 @@ function HistorialVersiones({ tesinaId }) {
 // Página principal
 // =========================
 export function TutorTesinaPage() {
-  const { user } = useAuth()
-
   const [tesinas, setTesinas] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')

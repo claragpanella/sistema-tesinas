@@ -473,7 +473,7 @@ export function AdminPautasPage() {
     try {
       const response = await api.get('/pautas/')
       setCategorias(response.data || [])
-    } catch (err) {
+    } catch {
       setError('Error al cargar las pautas')
     } finally {
       setLoading(false)

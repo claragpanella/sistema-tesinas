@@ -23,7 +23,13 @@ export default defineConfig([
       },
     },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      'no-unused-vars': ['error', {
+        // Componentes usados solo en JSX (<Icon />) y variables en mayúscula
+        varsIgnorePattern: '^[A-Z_]',
+        argsIgnorePattern: '^[A-Z_]',
+        // Permite ({ node, ...props }) para descartar una propiedad a propósito
+        ignoreRestSiblings: true,
+      }],
     },
   },
 ])

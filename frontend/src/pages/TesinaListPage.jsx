@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useDebounce } from '../hooks/useDebounce'
 import { useNavigate } from 'react-router-dom'
 import { Layout } from '../components/Layout/Layout'
 import { Spinner } from '../components/Common/Spinner'
@@ -18,7 +19,7 @@ import {
 
 export function TesinaListPage() {
   const navigate = useNavigate()
-  const { isAlumno, isAdmin, isTutor } = useAuth()
+  const { isAlumno, isAdmin } = useAuth()
 
   const [tesinas, setTesinas] = useState([])
   const [pagination, setPagination] = useState(null)
@@ -29,6 +30,7 @@ export function TesinaListPage() {
 
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
+  const busqueda = useDebounce(search, 500)
   const [estado, setEstado] = useState('')
 
   const handleDelete = async (id, titulo) => {
@@ -76,7 +78,7 @@ export function TesinaListPage() {
     }
   }
 
-  const fetchTesinas = async () => {
+  const fetchTesinas = useCallback(async () => {
     setLoading(true)
     setError('')
     
@@ -84,7 +86,7 @@ export function TesinaListPage() {
       const params = new URLSearchParams()
       params.append('page', page)
       params.append('per_page', 10)
-      if (search) params.append('search', search)
+      if (busqueda) params.append('search', busqueda)
       if (estado) params.append('estado', estado)
 
       const response = await api.get(`/tesinas?${params}`)
@@ -113,19 +115,11 @@ export function TesinaListPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [page, busqueda, estado, isAlumno, navigate])
 
   useEffect(() => {
     fetchTesinas()
-  }, [page, estado])
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setPage(1)
-      fetchTesinas()
-    }, 500)
-    return () => clearTimeout(timer)
-  }, [search])
+  }, [fetchTesinas])
 
   const handleEstadoChange = (e) => {
     setEstado(e.target.value)
@@ -194,7 +188,7 @@ export function TesinaListPage() {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setPage(1) }}
               placeholder="Buscar por alumno..."
               className="input pl-9"
             />
