@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 
 from flask import Flask
 from flask_cors import CORS
@@ -37,12 +38,16 @@ app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(UPLOAD_EJEMPLOS_FOLDER, exist_ok=True)
 
-# Configuración de CORS — tres orígenes permitidos
+# Configuración de CORS: orígenes que pueden llamar a la API desde el navegador.
+# Las previews de Vercel tienen la forma https://sistema-tesinas-<hash>.vercel.app,
+# por eso se usa una expresión regular anclada (^...$) para no aceptar otros dominios.
+# No se usan cookies (el token viaja en el header Authorization), así que
+# no hace falta supports_credentials.
 CORS(app, origins=[
     "http://localhost:5173",
-    "https://sistema-tesinas.vercel.app", 
-    "https://sistema-tesinas-*.vercel.app" # previews
-], supports_credentials=True)
+    "https://sistema-tesinas.vercel.app",
+    re.compile(r"^https://sistema-tesinas-[a-z0-9-]+\.vercel\.app$"),
+])
 
 # Inicializa la base de datos
 init_db()

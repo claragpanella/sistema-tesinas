@@ -17,17 +17,27 @@ UPLOAD_EJEMPLOS_FOLDER = os.path.join(BASE_DIR, "uploads_ejemplos")
 # Extensiones permitidas para tesinas
 ALLOWED_EXTENSIONS = {'pdf', 'docx'}  # .doc (Word 97-2003) no se puede leer con python-docx
 
-# Configuración de Flask
-SECRET_KEY = os.getenv("SECRET_KEY", "default-secret-key-change-in-production")
-DEBUG = os.getenv("DEBUG", "True") == "True"
+# Entorno: Render define automáticamente la variable RENDER=true
+EN_PRODUCCION = os.getenv("RENDER") == "true"
 
 # Configuración de JWT
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "default-jwt-secret-key-change-in-production")
+# En producción la clave es obligatoria: si faltara, cualquiera que conozca
+# la clave por defecto podría firmar tokens válidos y hacerse pasar por admin.
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not JWT_SECRET_KEY:
+    if EN_PRODUCCION:
+        raise RuntimeError("Falta la variable de entorno JWT_SECRET_KEY")
+    JWT_SECRET_KEY = "clave-solo-para-desarrollo-local"
+    print("⚠️  JWT_SECRET_KEY no definida: se usa una clave de desarrollo (no usar en producción)")
+
 JWT_ACCESS_TOKEN_EXPIRES = timedelta(seconds=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", 3600)))  # 1 hora
 JWT_REFRESH_TOKEN_EXPIRES = timedelta(seconds=int(os.getenv("JWT_REFRESH_TOKEN_EXPIRES", 2592000)))  # 30 días
 JWT_ALGORITHM = "HS256"
 
-# API de GROQ 
+# Configuración de Flask (la app no usa sesiones de Flask; se reutiliza la clave JWT)
+SECRET_KEY = os.getenv("SECRET_KEY") or JWT_SECRET_KEY
+
+# API de GROQ
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 def allowed_file(filename):
