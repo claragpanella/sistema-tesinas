@@ -17,7 +17,10 @@ import {
   XCircle,
   Loader2,
   MessageSquare,
-  Pencil
+  Pencil,
+  Bot,
+  Send,
+  Lock
 } from 'lucide-react'
 
 // =========================
@@ -592,32 +595,59 @@ export function TesinaDetallePage() {
 
       {/* Banner borrador */}
       {isAlumno && tesina?.estado_alumno === 'borrador' && (
-        <div className="mb-6 p-6 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl">
-          <h3 className="font-bold text-yellow-900 mb-2">Esta tesina está en BORRADOR</h3>
-          <p className="text-sm text-yellow-700 mb-4">Todavía no fue enviada al tutor. Podés:</p>
-          <ul className="text-sm text-yellow-700 mb-4 space-y-1">
-            <li>• Analizarla con el <strong>chat asistente</strong> para detectar problemas</li>
-            <li>• Hacer todas las correcciones que necesites</li>
-            <li>• Subir nuevas versiones</li>
-            <li>• Cuando esté lista, enviarla al tutor para su revisión</li>
-          </ul>
-          <div className="flex gap-3">
-            <button
-              onClick={() => navigate(`/chat?tesina=${id}&autoanalizar=1`)}
-              className="px-4 py-2 bg-white border border-yellow-300 text-yellow-700 rounded-lg hover:bg-yellow-50 transition-colors flex items-center gap-2"
-            >
-              Analizar con el chat
-            </button>
-            <button
-              onClick={handleEnviarATutor}
-              disabled={enviando}
-              className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-            >
-              {enviando
-                ? <><Loader2 className="w-4 h-4 animate-spin" />Enviando...</>
-                : 'Enviar al tutor'
-              }
-            </button>
+        <div className="mb-6 p-4 sm:px-5 bg-white border border-gray-200 rounded-xl shadow-sm">
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mb-3.5">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[13px] font-semibold">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-600" />
+              Borrador
+            </span>
+            <span className="text-[15px] font-semibold text-gray-900">Tu tesina todavía no fue enviada</span>
+            <span className="text-sm text-gray-500">
+              <span className="hidden sm:inline">· </span>Podés corregirla y subir nuevas versiones; tu tutor todavía no la ve.
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Acción 1: revisar con TesiBot */}
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 px-3.5 py-3 bg-indigo-50 rounded-xl">
+              <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-white text-indigo-700 flex items-center justify-center">
+                <Bot className="w-[18px] h-[18px]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-indigo-950">Revisala con TesiBot</p>
+                <p className="text-[13px] text-indigo-700">Estructura, redacción y citas APA.</p>
+              </div>
+              <button
+                onClick={() => navigate(`/chat?tesina=${id}&autoanalizar=1`)}
+                className="w-full sm:w-auto flex-shrink-0 min-h-[44px] px-3.5 text-sm font-semibold bg-white text-indigo-800 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors"
+              >
+                Analizar
+              </button>
+            </div>
+
+            {/* Acción 2: enviar al tutor */}
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 px-3.5 py-3 bg-white border border-gray-200 rounded-xl">
+              <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-gray-100 text-gray-700 flex items-center justify-center">
+                <Send className="w-[18px] h-[18px]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-900">Enviala a tu tutor</p>
+                <p className="flex items-center gap-1.5 text-[13px] text-gray-500">
+                  <Lock className="w-3 h-3 flex-shrink-0" />
+                  Después ya no vas a poder editarla.
+                </p>
+              </div>
+              <button
+                onClick={handleEnviarATutor}
+                disabled={enviando}
+                className="w-full sm:w-auto flex-shrink-0 min-h-[44px] px-4 text-sm font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {enviando
+                  ? <><Loader2 className="w-4 h-4 animate-spin" />Enviando...</>
+                  : 'Enviar al tutor'
+                }
+              </button>
+            </div>
           </div>
         </div>
       )}
