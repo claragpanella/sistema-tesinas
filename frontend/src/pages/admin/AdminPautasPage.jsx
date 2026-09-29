@@ -4,6 +4,7 @@ import { Spinner } from '../../components/Common/Spinner'
 import { Alert } from '../../components/Common/Alert'
 import { EmptyState } from '../../components/Common/EmptyState'
 import api from '../../services/api'
+import { useConfirm } from '../../hooks/useConfirm'
 import {
   BookOpen,
   Plus,
@@ -309,9 +310,16 @@ function CategoriaCard({
 }) {
   const [expanded, setExpanded] = useState(true)
   const [deletingPautaId, setDeletingPautaId] = useState(null)
+  const confirmar = useConfirm()
 
   const handleDeletePauta = async (pautaId) => {
-    if (!confirm('¿Estás seguro de eliminar esta pauta?')) return
+    const confirmado = await confirmar({
+      titulo: '¿Eliminar esta pauta?',
+      mensaje: 'Esta acción no se puede deshacer.',
+      textoConfirmar: 'Eliminar pauta',
+      variante: 'peligro',
+    })
+    if (!confirmado) return
     setDeletingPautaId(pautaId)
     await onDeletePauta(pautaId)
     setDeletingPautaId(null)
@@ -456,6 +464,7 @@ function CategoriaCard({
 // Página principal
 // =========================
 export function AdminPautasPage() {
+  const confirmar = useConfirm()
   const [categorias, setCategorias] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -501,7 +510,13 @@ export function AdminPautasPage() {
   }
 
   const handleDeleteCategoria = async (id) => {
-    if (!confirm('¿Estás seguro de eliminar esta categoría?')) return
+    const confirmado = await confirmar({
+      titulo: '¿Eliminar esta categoría?',
+      mensaje: 'Solo se pueden eliminar categorías sin pautas. Esta acción no se puede deshacer.',
+      textoConfirmar: 'Eliminar categoría',
+      variante: 'peligro',
+    })
+    if (!confirmado) return
     try {
       await api.delete(`/pautas/categorias/${id}`)
       showSuccess('Categoría eliminada correctamente')

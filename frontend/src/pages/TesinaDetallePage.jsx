@@ -6,6 +6,7 @@ import { Alert } from '../components/Common/Alert'
 import { Badge } from '../components/Common/Badge'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
+import { useConfirm } from '../hooks/useConfirm'
 import {
   FileText,
   ArrowLeft,
@@ -460,6 +461,7 @@ export function TesinaDetallePage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { isAlumno } = useAuth()
+  const confirmar = useConfirm()
 
   const [tesina, setTesina] = useState(null)
   const [versiones, setVersiones] = useState([])
@@ -487,14 +489,16 @@ export function TesinaDetallePage() {
   }, [id])
 
   const handleEnviarATutor = async () => {
-    const confirmacion = window.confirm(
-      '¿Estás seguro de enviar esta tesina al tutor?\n\n' +
-      '• Ya no podrás editarla\n' +
-      '• El tutor podrá revisarla y aprobar/rechazar\n' +
-      '• Es recomendable analizarla con el chat antes de enviarla\n\n' +
-      '¿Continuar?'
-    )
-    if (!confirmacion) return
+    const confirmado = await confirmar({
+      titulo: '¿Enviar la tesina a tu tutor?',
+      mensaje: 'Tu tutor va a poder revisarla y aprobarla o pedirte correcciones.',
+      detalles: [
+        'Mientras esté en revisión ya no vas a poder editarla.',
+        'Te recomendamos analizarla antes con TesiBot.',
+      ],
+      textoConfirmar: 'Enviar al tutor',
+    })
+    if (!confirmado) return
 
     setEnviando(true)
     try {

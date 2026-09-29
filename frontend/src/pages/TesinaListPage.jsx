@@ -8,6 +8,7 @@ import { EmptyState } from '../components/Common/EmptyState'
 import { Badge } from '../components/Common/Badge'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
+import { useConfirm } from '../hooks/useConfirm'
 import {
   FileText,
   Eye,
@@ -20,12 +21,13 @@ import {
 export function TesinaListPage() {
   const navigate = useNavigate()
   const { isAlumno, isAdmin } = useAuth()
+  const confirmar = useConfirm()
 
   const [tesinas, setTesinas] = useState([])
   const [pagination, setPagination] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')  // ← AGREGAR ESTE ESTADO
+  const [success, setSuccess] = useState('')
   const [deletingId, setDeletingId] = useState(null)
 
   const [page, setPage] = useState(1)
@@ -39,14 +41,16 @@ export function TesinaListPage() {
       return
     }
 
-    const confirmado = window.confirm(
-      `⚠️ ¿Estás seguro de ELIMINAR permanentemente la tesina "${titulo}"?\n\n` +
-      `Esta acción:\n` +
-      `• Eliminará la tesina y todas sus versiones\n` +
-      `• Eliminará todos los archivos asociados\n` +
-      `• NO se puede deshacer\n\n` +
-      `¿Continuar?`
-    )
+    const confirmado = await confirmar({
+      titulo: '¿Eliminar esta tesina?',
+      mensaje: `Se va a eliminar "${titulo}" de forma permanente.`,
+      detalles: [
+        'Se borran todas sus versiones y archivos.',
+        'Esta acción no se puede deshacer.',
+      ],
+      textoConfirmar: 'Eliminar tesina',
+      variante: 'peligro',
+    })
 
     if (!confirmado) {
       return

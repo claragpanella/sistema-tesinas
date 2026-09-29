@@ -5,6 +5,7 @@ import { Spinner } from '../../components/Common/Spinner'
 import { Alert } from '../../components/Common/Alert'
 import { EmptyState } from '../../components/Common/EmptyState'
 import api from '../../services/api'
+import { useConfirm } from '../../hooks/useConfirm'
 import {
   FileSearch,
   Plus,
@@ -279,6 +280,7 @@ export function AdminEjemplosPage() {
   const [showModal, setShowModal] = useState(false)
   const [selectedEjemplo, setSelectedEjemplo] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
+  const confirmar = useConfirm()
   const [downloadingId, setDownloadingId] = useState(null)
 
   const fetchEjemplos = useCallback(async () => {
@@ -338,7 +340,13 @@ export function AdminEjemplosPage() {
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('¿Estás seguro de eliminar este ejemplo?')) return
+    const confirmado = await confirmar({
+      titulo: '¿Eliminar este ejemplo?',
+      mensaje: 'Se borra el ejemplo y su archivo. Esta acción no se puede deshacer.',
+      textoConfirmar: 'Eliminar ejemplo',
+      variante: 'peligro',
+    })
+    if (!confirmado) return
 
     setDeletingId(id)
     try {

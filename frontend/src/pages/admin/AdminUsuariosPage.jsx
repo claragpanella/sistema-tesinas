@@ -6,6 +6,7 @@ import { Alert } from '../../components/Common/Alert'
 import { EmptyState } from '../../components/Common/EmptyState'
 import { Badge } from '../../components/Common/Badge'
 import api from '../../services/api'
+import { useConfirm } from '../../hooks/useConfirm'
 import {
   Users,
   Plus,
@@ -324,6 +325,7 @@ export function AdminUsuariosPage() {
   const [selectedUsuario, setSelectedUsuario] = useState(null)
   const [togglingId, setTogglingId] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
+  const confirmar = useConfirm()
 
   const fetchUsuarios = useCallback(async () => {
     setLoading(true)
@@ -407,7 +409,14 @@ export function AdminUsuariosPage() {
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('⚠️ ¿Estás seguro de ELIMINAR permanentemente este alumno?\n\nEsta acción NO se puede deshacer.\n\nSi solo querés desactivarlo temporalmente, usá el botón de activar/desactivar (toggle verde).')) return
+    const confirmado = await confirmar({
+      titulo: '¿Eliminar este alumno?',
+      mensaje: 'Se va a eliminar de forma permanente y no se puede deshacer.',
+      detalles: ['Si solo querés bloquear su acceso por un tiempo, desactivalo con el interruptor.'],
+      textoConfirmar: 'Eliminar alumno',
+      variante: 'peligro',
+    })
+    if (!confirmado) return
 
     setDeletingId(id)
     try {

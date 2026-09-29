@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { ConfirmProvider } from './components/Common/ConfirmDialog'
 import { ProtectedRoute } from './components/Layout/ProtectedRoute'
 
 // Páginas públicas
@@ -27,6 +28,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <ConfirmProvider>
         <Routes>
 
           {/* ===================== */}
@@ -185,6 +187,7 @@ function App() {
           <Route path="*" element={<NotFoundPage />} />
 
         </Routes>
+        </ConfirmProvider>
       </AuthProvider>
     </BrowserRouter>
   )

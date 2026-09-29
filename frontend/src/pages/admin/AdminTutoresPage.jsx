@@ -6,6 +6,7 @@ import { Alert } from '../../components/Common/Alert'
 import { EmptyState } from '../../components/Common/EmptyState'
 import { Badge } from '../../components/Common/Badge'
 import api from '../../services/api'
+import { useConfirm } from '../../hooks/useConfirm'
 import {
   GraduationCap,
   Plus,
@@ -321,6 +322,7 @@ export function AdminTutoresPage() {
   const [selectedTutor, setSelectedTutor] = useState(null)
   const [togglingId, setTogglingId] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
+  const confirmar = useConfirm()
 
   const fetchTutores = useCallback(async () => {
     setLoading(true)
@@ -404,7 +406,14 @@ export function AdminTutoresPage() {
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('⚠️ ¿Estás seguro de ELIMINAR permanentemente este tutor? Esta acción NO se puede deshacer. Si solo querés desactivarlo temporalmente, usá el botón de activar/desactivar.')) return
+    const confirmado = await confirmar({
+      titulo: '¿Eliminar este tutor?',
+      mensaje: 'Se va a eliminar de forma permanente y no se puede deshacer.',
+      detalles: ['Si solo querés bloquear su acceso por un tiempo, desactivalo con el interruptor.'],
+      textoConfirmar: 'Eliminar tutor',
+      variante: 'peligro',
+    })
+    if (!confirmado) return
 
     setDeletingId(id)
     try {
