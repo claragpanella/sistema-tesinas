@@ -1,17 +1,14 @@
 import logging
 import os
-import traceback
-import uuid
 from datetime import datetime
 
-from flask import Blueprint, request, jsonify, send_from_directory
+from flask import Blueprint, request, jsonify
 
 from config import UPLOAD_FOLDER, allowed_file
 from utils.db_utils import get_db
 from utils.file_utils import save_file_safely
 from utils.jwt_utils import token_required, alumno_required, tutor_required, admin_required
 from utils.pagination_utils import create_pagination_response, get_pagination_params
-from utils.filter_utils import get_filter_params, build_where_clause
 
 logger = logging.getLogger(__name__)
 
@@ -298,111 +295,6 @@ def obtener_tesina(tesina_id):
     except Exception:
         logger.exception("Error al obtener tesina %s", tesina_id)
         return jsonify({"error": "Error al obtener la tesina"}), 500
-
-
-# =========================
-# REVISAR TESINA (TUTOR)
-# =========================
-@tesinas_bp.route("/tesinas/<int:tesina_id>/revisar", methods=["PUT"])
-@tutor_required
-def revisar_tesina(tesina_id):
-    """
-    Permite al tutor aprobar o rechazar una tesina.
-    Solo puede revisar tesinas ENVIADAS (no borradores).
-    """
-    try:
-        tutor_id = request.current_user['user_id']
-        data     = request.get_json(silent=True) or {}
-
-        nuevo_estado  = data.get('estado_tutor')
-        observaciones = data.get('observaciones', '')
-
-        if nuevo_estado not in ['aprobada', 'rechazada']:
-            return jsonify({"error": "Estado inválido"}), 400
-
-        with get_db() as conn:
-            cursor = conn.cursor()
-
-            cursor.execute("""
-                SELECT id, estado_alumno, estado_tutor, titulo
-                FROM tesinas
-                WHERE id = ? AND tutor_id = ?
-            """, (tesina_id, tutor_id))
-
-            tesina = cursor.fetchone()
-
-            if not tesina:
-                return jsonify({"error": "Tesina no encontrada o no asignada a vos"}), 404
-
-            if tesina['estado_alumno'] != 'enviada':
-                return jsonify({"error": "Esta tesina aún no fue enviada por el alumno"}), 400
-
-            cursor.execute("""
-                UPDATE tesinas
-                SET estado_tutor = ?, observaciones = ?, updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
-            """, (nuevo_estado, observaciones, tesina_id))
-
-            cursor.execute("""
-                UPDATE versiones_tesinas
-                SET estado_tutor = ?, observaciones = ?
-                WHERE tesina_id = ? AND is_current = 1
-            """, (nuevo_estado, observaciones, tesina_id))
-
-        return jsonify({
-            "message": f"✅ Tesina '{tesina['titulo']}' {nuevo_estado}",
-            "estado_tutor": nuevo_estado
-        })
-
-    except Exception:
-        logger.exception("Error al revisar tesina %s", tesina_id)
-        return jsonify({"error": "Error al revisar la tesina"}), 500
-
-
-# =========================
-# GUARDAR OBSERVACIONES (TUTOR)
-# =========================
-@tesinas_bp.route("/tutor/versiones/<int:version_id>/observaciones", methods=["POST"])
-@tutor_required
-def guardar_observaciones_version(version_id):
-    try:
-        tutor_id      = request.current_user['user_id']
-        observaciones = (request.get_json(silent=True) or {}).get("observaciones", "")
-
-        with get_db() as conn:
-            cursor = conn.cursor()
-
-            # Verificar que la versión pertenece a una tesina asignada a este tutor
-            cursor.execute("""
-                SELECT vt.tesina_id
-                FROM versiones_tesinas vt
-                JOIN tesinas t ON t.id = vt.tesina_id
-                WHERE vt.id = ? AND t.tutor_id = ?
-            """, (version_id, tutor_id))
-
-            row = cursor.fetchone()
-            if not row:
-                return jsonify({"error": "Versión no encontrada o sin permisos"}), 404
-
-            tesina_id = row['tesina_id']
-
-            cursor.execute("""
-                UPDATE versiones_tesinas
-                SET observaciones = ?
-                WHERE id = ?
-            """, (observaciones, version_id))
-
-            cursor.execute("""
-                UPDATE tesinas
-                SET observaciones = ?
-                WHERE id = ?
-            """, (observaciones, tesina_id))
-
-        return jsonify({"message": "Observaciones guardadas en versión y tesina"})
-
-    except Exception:
-        logger.exception("Error al guardar observaciones")
-        return jsonify({"error": "Error al guardar observaciones"}), 500
 
 
 # =========================

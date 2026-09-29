@@ -2,7 +2,6 @@ import json
 import logging
 import os
 import re
-import traceback
 
 from flask import Blueprint, jsonify, request
 
@@ -261,82 +260,6 @@ def convertir_tablas_a_lista(texto: str) -> str:
             i += 1
 
     return "\n".join(resultado)
-
-
-
-def _limpiar_json_respuesta(texto: str) -> str:
-    """Elimina bloques de markdown (```json ... ```) de una respuesta."""
-    return re.sub(r'^```(?:json)?\s*|\s*```$', '', texto.strip())
-
-
-def analizar_tesina_con_ia(
-    texto: str, titulo: str = "", resumen: str = ""
-) -> tuple[list, str]:
-    groq = get_groq_client()
-    if not groq:
-        logger.warning("Groq no disponible; no se puede analizar la tesina")
-        return [], ""
-
-    prompt_analisis = f"""Sos un experto evaluador de tesinas universitarias argentinas.
-
-Analizá la siguiente tesina y detectá problemas comunes.
-
-TESINA:
-Título: {titulo}
-Resumen: {resumen}
-
-CONTENIDO (extracto):
-{texto[:15000]}
-
-INSTRUCCIONES:
-Analizá la tesina y detectá problemas en estas categorías:
-1. Extensión del documento
-2. Estructura (secciones obligatorias: introducción, marco teórico, metodología, resultados, conclusiones, referencias)
-3. Referencias y citas (formato APA)
-4. Redacción académica (uso de primera persona, párrafos largos, palabras repetitivas)
-5. Figuras y tablas
-6. Calidad del contenido
-
-Para cada problema detectado, respondé en formato JSON con esta estructura:
-{{
-  "problemas": [
-    {{
-      "tipo": "error|warning|info",
-      "categoria": "Extensión|Estructura|Referencias|Redacción|...",
-      "titulo": "Título corto del problema",
-      "descripcion": "Descripción detallada del problema detectado",
-      "sugerencia": "Recomendación específica para solucionarlo"
-    }}
-  ],
-  "resumen": "Resumen general del análisis en 2-3 oraciones"
-}}
-
-RESPONDE SOLO CON EL JSON, sin texto adicional."""
-
-    try:
-        response = groq.chat.completions.create(
-            model="openai/gpt-oss-120b",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "Sos un experto evaluador de tesinas. Respondés SOLO en formato JSON válido.",
-                },
-                {"role": "user", "content": prompt_analisis},
-            ],
-            temperature=0.3,
-            max_tokens=2000,
-        )
-
-        respuesta_ia = _limpiar_json_respuesta(response.choices[0].message.content)
-        resultado = json.loads(respuesta_ia)
-        return resultado.get('problemas', []), resultado.get('resumen', '')
-
-    except json.JSONDecodeError:
-        logger.exception("Groq retornó JSON inválido")
-    except Exception:
-        logger.exception("Error en análisis con IA")
-
-    return [], ""
 
 
 # =============================================================================
@@ -600,32 +523,6 @@ def listar_conversaciones():
         return jsonify({"error": "Error al obtener conversaciones"}), 500
 
 
-@chat_bp.route("/chat/conversaciones", methods=["POST"])
-@alumno_o_tutor_required
-def crear_conversacion():
-    try:
-        user_id   = request.current_user['user_id']
-        user_role = request.current_user['role']
-        data      = request.get_json(silent=True) or {}
-        tesina_id = data.get('tesina_id')
-        titulo    = data.get('titulo', 'Nueva conversación')
-        with get_db() as conn:
-            cursor = conn.cursor()
-
-            # No permitir asociar la conversación a una tesina ajena
-            if tesina_id and not obtener_tesina_autorizada(cursor, tesina_id, user_id, user_role):
-                return jsonify({"error": "Tesina no encontrada o sin permisos"}), 404
-
-            cursor.execute(
-                "INSERT INTO conversaciones (usuario_id, rol_usuario, tesina_id, titulo) VALUES (?, ?, ?, ?)",
-                (user_id, user_role, tesina_id, titulo),
-            )
-            return jsonify({'id': cursor.lastrowid, 'titulo': titulo, 'tesina_id': tesina_id})
-    except Exception:
-        logger.exception("Error al crear conversación")
-        return jsonify({"error": "Error al crear conversación"}), 500
-
-
 @chat_bp.route("/chat/conversaciones/<int:conversacion_id>/mensajes", methods=["GET"])
 @alumno_o_tutor_required
 def obtener_mensajes(conversacion_id):
@@ -703,67 +600,6 @@ def actualizar_titulo_conversacion(conversacion_id):
     except Exception:
         logger.exception("Error al actualizar título de conversación %s", conversacion_id)
         return jsonify({"error": "Error al actualizar título"}), 500
-
-
-# =============================================================================
-# Analizar tesina
-# =============================================================================
-
-@chat_bp.route("/chat/analizar-tesina/<int:tesina_id>", methods=["GET"])
-@alumno_o_tutor_required
-def analizar_tesina_problemas(tesina_id):
-    """
-    Analiza una tesina usando IA y retorna la lista de problemas detectados.
-    Alumnos solo pueden analizar sus propias tesinas; tutores las asignadas.
-    """
-    try:
-        user_id   = request.current_user['user_id']
-        user_role = request.current_user['role']
-
-        with get_db() as conn:
-            cursor = conn.cursor()
-            tesina = obtener_tesina_autorizada(cursor, tesina_id, user_id, user_role)
-
-        if not tesina:
-            return jsonify({"error": "Tesina no encontrada o sin permisos"}), 404
-
-        filepath = os.path.join(UPLOAD_FOLDER, tesina['nombre_archivo'])
-        if not os.path.exists(filepath):
-            return jsonify({"error": "Archivo no encontrado"}), 404
-
-        texto_completo = extract_text_from_file(filepath)
-        if not texto_completo:
-            return jsonify({"error": "No se pudo extraer el texto del archivo"}), 500
-
-        problemas, resumen_analisis = analizar_tesina_con_ia(
-            texto_completo,
-            titulo=tesina['titulo'],
-            resumen=tesina['resumen'],
-        )
-
-        total_palabras    = len(texto_completo.split())
-        paginas_estimadas = total_palabras // 250
-
-        return jsonify({
-            "problemas":       problemas,
-            "resumen":         resumen_analisis,
-            "metodo":          "ia",
-            "estadisticas": {
-                "palabras":          total_palabras,
-                "caracteres":        len(texto_completo),
-                "paginas_estimadas": paginas_estimadas,
-            },
-            "total_problemas": len(problemas),
-            "nivel_gravedad": {
-                "errores":      sum(1 for p in problemas if p.get('tipo') == 'error'),
-                "advertencias": sum(1 for p in problemas if p.get('tipo') == 'warning'),
-                "informacion":  sum(1 for p in problemas if p.get('tipo') == 'info'),
-            },
-        })
-
-    except Exception:
-        logger.exception("Error al analizar tesina %s", tesina_id)
-        return jsonify({"error": "Error al analizar la tesina"}), 500
 
 
 # =============================================================================

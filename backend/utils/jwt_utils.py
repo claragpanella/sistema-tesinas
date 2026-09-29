@@ -1,5 +1,5 @@
 import jwt
-from datetime import datetime, timedelta
+from datetime import datetime
 from functools import wraps
 from flask import request, jsonify
 import config
