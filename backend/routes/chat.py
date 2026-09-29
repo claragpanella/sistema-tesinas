@@ -40,11 +40,11 @@ def get_groq_client():
 
 # ─── Extracción de texto ──────────────────────────────────────────────────────
 try:
-    import PyPDF2
-    _PYPDF2_OK = True
+    from pypdf import PdfReader
+    _PYPDF_OK = True
 except ImportError:
-    _PYPDF2_OK = False
-    logger.warning("PyPDF2 no disponible; no se podrán leer PDFs")
+    _PYPDF_OK = False
+    logger.warning("pypdf no disponible; no se podrán leer PDFs")
 
 try:
     import docx as _docx_module
@@ -59,11 +59,11 @@ def extract_text_from_file(filepath: str) -> str | None:
     try:
         ext = filepath.rsplit('.', 1)[-1].lower()
         if ext == 'pdf':
-            if not _PYPDF2_OK:
-                logger.error("PyPDF2 no instalado; no se puede leer el PDF")
+            if not _PYPDF_OK:
+                logger.error("pypdf no instalado; no se puede leer el PDF")
                 return None
             with open(filepath, 'rb') as f:
-                reader = PyPDF2.PdfReader(f)
+                reader = PdfReader(f)
                 return "".join(page.extract_text() or "" for page in reader.pages)
         elif ext == 'docx':
             if not _DOCX_OK:

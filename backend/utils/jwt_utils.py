@@ -1,5 +1,5 @@
 import jwt
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 from flask import request, jsonify
 import config
@@ -11,8 +11,8 @@ def generate_access_token(user_id, user_role):
     payload = {
         'user_id': user_id,
         'role': user_role,
-        'exp': datetime.utcnow() + config.JWT_ACCESS_TOKEN_EXPIRES,
-        'iat': datetime.utcnow(),
+        'exp': datetime.now(timezone.utc) + config.JWT_ACCESS_TOKEN_EXPIRES,
+        'iat': datetime.now(timezone.utc),
         'type': 'access'
     }
     
@@ -25,8 +25,8 @@ def generate_refresh_token(user_id):
     """
     payload = {
         'user_id': user_id,
-        'exp': datetime.utcnow() + config.JWT_REFRESH_TOKEN_EXPIRES,
-        'iat': datetime.utcnow(),
+        'exp': datetime.now(timezone.utc) + config.JWT_REFRESH_TOKEN_EXPIRES,
+        'iat': datetime.now(timezone.utc),
         'type': 'refresh'
     }
     

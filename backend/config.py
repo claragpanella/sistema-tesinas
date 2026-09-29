@@ -10,9 +10,9 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # Base de datos
 DB_PATH = os.path.join(BASE_DIR, os.getenv("DB_NAME", "database.db"))
 
-# Carpetas de uploads
-UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
-UPLOAD_EJEMPLOS_FOLDER = os.path.join(BASE_DIR, "uploads_ejemplos")
+# Carpetas de uploads (configurables por entorno; los tests usan carpetas temporales)
+UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER") or os.path.join(BASE_DIR, "uploads")
+UPLOAD_EJEMPLOS_FOLDER = os.getenv("UPLOAD_EJEMPLOS_FOLDER") or os.path.join(BASE_DIR, "uploads_ejemplos")
 
 # Extensiones permitidas para tesinas
 ALLOWED_EXTENSIONS = {'pdf', 'docx'}  # .doc (Word 97-2003) no se puede leer con python-docx

@@ -230,7 +230,34 @@ python database.py         # Inicializar BD
 npm run dev               # Modo desarrollo
 npm run build            # Build para producción
 npm run preview          # Preview del build
+npm run lint             # Análisis estático con ESLint
 ```
+
+---
+
+## Pruebas Automatizadas
+
+El backend tiene una suite de pruebas con **pytest** (46 tests) que cubre autenticación,
+control de acceso por rol y por recurso, flujo de versiones de tesinas, el asistente con IA
+y el manejo de errores.
+
+```powershell
+cd backend
+pip install -r requirements-dev.txt
+pytest
+```
+
+Las pruebas usan una base de datos y carpetas temporales, y reemplazan la API de Groq por
+un cliente simulado: no modifican datos reales ni consumen la API.
+
+| Archivo | Qué verifica |
+|---|---|
+| `tests/test_auth.py` | Login, registro, usuarios inactivos, validación de tokens |
+| `tests/test_permisos.py` | Que ningún usuario acceda a tesinas, archivos o conversaciones ajenas |
+| `tests/test_tesinas.py` | Subida, envío, revisión, reentrega y sincronización de versiones |
+| `tests/test_chat.py` | Historial del chat, cobertura de la tesina analizada, formato de respuestas |
+| `tests/test_errores.py` | Parámetros inválidos y respuestas de error sin detalles internos |
+| `tests/test_utils.py` | Búsqueda sin tildes y armado seguro de filtros SQL |
 
 ---
 
