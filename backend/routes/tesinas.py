@@ -1,6 +1,5 @@
 import logging
 import os
-from datetime import datetime
 
 from flask import Blueprint, request, jsonify
 
@@ -582,8 +581,8 @@ def reentregar_tesina(tesina_id):
                     estado_alumno, estado_tutor, observaciones,
                     is_current, fecha_creacion
                 )
-                VALUES (?, ?, ?, 'borrador', 'pendiente', NULL, 1, ?)
-            """, (tesina_id, new_version, nombre_archivo, datetime.now().isoformat()))
+                VALUES (?, ?, ?, 'borrador', 'pendiente', NULL, 1, CURRENT_TIMESTAMP)
+            """, (tesina_id, new_version, nombre_archivo))
 
             cursor.execute("""
                 UPDATE tesinas

@@ -6,6 +6,7 @@ import { Alert } from '../../components/Common/Alert'
 import { EmptyState } from '../../components/Common/EmptyState'
 import { Badge } from '../../components/Common/Badge'
 import api from '../../services/api'
+import { formatearFecha, formatearFechaHora } from '../../utils/fechas'
 import {
   FileText,
   ChevronDown,
@@ -232,10 +233,7 @@ function TesinaCard({ tesina, onRevisar }) {
 
               <p className="text-xs text-gray-400 mt-2">
                 Entregado:{' '}
-                {new Date(tesina.fecha_creacion).toLocaleDateString('es-AR', {
-                  day: '2-digit', month: '2-digit', year: 'numeric',
-                  hour: '2-digit', minute: '2-digit',
-                })}
+                {formatearFechaHora(tesina.fecha_creacion)}
               </p>
             </div>
           </div>
@@ -337,7 +335,7 @@ function HistorialVersiones({ tesinaId }) {
               <div>
                 <Badge text={v.estado_tutor} />
                 <p className="text-xs text-gray-400 mt-1">
-                  {new Date(v.fecha_creacion).toLocaleDateString('es-AR')}
+                  {formatearFecha(v.fecha_creacion)}
                 </p>
                 {v.observaciones && (
                   <div className="flex items-start gap-1.5 mt-1.5 p-2 bg-white rounded border border-gray-100">

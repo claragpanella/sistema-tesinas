@@ -108,3 +108,23 @@ def test_eliminar_conversacion_borra_sus_mensajes(client, auth, tesina_de_ana):
             "SELECT COUNT(*) FROM mensajes_chat WHERE conversacion_id = ?", (conv,)
         ).fetchone()[0]
     assert restantes == 0
+
+
+def test_las_versiones_guardan_la_fecha_en_utc_con_el_mismo_formato(client, auth, tesina_de_ana):
+    """La primera versión y las reentregas usan el mismo reloj (UTC de SQLite),
+    así el frontend puede mostrarlas todas en hora argentina sin desfasajes."""
+    from datetime import datetime, timezone
+
+    tid = tesina_de_ana
+    client.post(f"/tesinas/{tid}/enviar-a-tutor", headers=auth["ana"])
+    version = client.get(f"/tesinas/{tid}/versions", headers=auth["tutor"]).get_json()[0]
+    client.post(f"/tutor/versiones/{version['version_id']}/revisar", headers=auth["tutor"],
+                json={"estado": "rechazada"})
+    client.post(f"/tesinas/{tid}/reentrega", headers=auth["ana"], data={"file": archivo_pdf("v2.pdf")})
+
+    ahora_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+    versiones = client.get(f"/tesinas/{tid}", headers=auth["ana"]).get_json()["versiones"]
+    assert len(versiones) == 2
+    for v in versiones:
+        fecha = datetime.strptime(v["fecha_creacion"], "%Y-%m-%d %H:%M:%S")
+        assert abs((ahora_utc - fecha).total_seconds()) < 120

@@ -6,6 +6,7 @@ import { Alert } from '../components/Common/Alert'
 import { Badge } from '../components/Common/Badge'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
+import { formatearFechaHora } from '../utils/fechas'
 import { useConfirm } from '../hooks/useConfirm'
 import {
   FileText,
@@ -433,10 +434,7 @@ function VersionTimeline({ versiones }) {
                 </div>
 
                 <p className="text-xs text-gray-400 mb-2">
-                  {new Date(version.fecha_creacion).toLocaleDateString('es-AR', {
-                    day: '2-digit', month: '2-digit', year: 'numeric',
-                    hour: '2-digit', minute: '2-digit'
-                  })}
+                  {formatearFechaHora(version.fecha_creacion)}
                 </p>
 
                 {version.observaciones && (

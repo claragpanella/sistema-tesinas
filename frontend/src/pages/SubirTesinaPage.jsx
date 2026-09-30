@@ -4,6 +4,7 @@ import { Layout } from '../components/Layout/Layout'
 import { Alert } from '../components/Common/Alert'
 import { Spinner } from '../components/Common/Spinner'
 import api from '../services/api'
+import { formatearFecha } from '../utils/fechas'
 import { Badge } from '../components/Common/Badge'
 import { Upload, FileText, Loader2, Info, ArrowRight } from 'lucide-react'
 
@@ -136,9 +137,7 @@ export function SubirTesinaPage() {
   }
 
   if (tesinaExistente) {
-    const fecha = tesinaExistente.updated_at
-      ? new Date(tesinaExistente.updated_at.replace(' ', 'T') + 'Z').toLocaleDateString('es-AR')
-      : null
+    const fecha = formatearFecha(tesinaExistente.updated_at)
 
     return (
       <Layout>

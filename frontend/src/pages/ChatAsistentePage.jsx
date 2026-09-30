@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Layout } from '../components/Layout/Layout'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
+import { formatearFecha } from '../utils/fechas'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
@@ -486,7 +487,7 @@ export function ChatAsistentePage() {
                           <span>{conv.total_mensajes || 0} mensajes</span>
                           <span>
                             {conv.updated_at
-                              ? new Date(conv.updated_at).toLocaleDateString('es-AR')
+                              ? formatearFecha(conv.updated_at)
                               : 'Hoy'}
                           </span>
                         </div>
