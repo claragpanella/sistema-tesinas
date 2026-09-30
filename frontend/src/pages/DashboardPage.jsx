@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { Layout } from '../components/Layout/Layout'
 import { useState, useEffect } from 'react' 
@@ -12,8 +12,7 @@ import {
   ClipboardList,
   GraduationCap,
   ShieldCheck,
-  User,
-  MessageSquare
+  MessageSquare,
 } from 'lucide-react'
 
 function MenuCard({ icon: Icon, title, subtitle, path, color = 'indigo' }) {
@@ -49,8 +48,94 @@ function MenuCard({ icon: Icon, title, subtitle, path, color = 'indigo' }) {
 // =========================
 // Dashboard del ALUMNO
 // =========================
+// Pasos del recorrido de una tesina y en cuál está según sus estados
+function calcularProgreso(tesina) {
+  const { estado_alumno, estado_tutor, numero_version } = tesina
+  const version = numero_version || 1
+
+  if (estado_tutor === 'aprobada') {
+    return {
+      paso: 4, resultado: 'Aprobada', tono: 'aprobada',
+      mensaje: '¡Felicitaciones! Tu tutor aprobó la tesina.',
+    }
+  }
+  if (estado_tutor === 'rechazada') {
+    return {
+      paso: 4, resultado: 'Correcciones pedidas', tono: 'correcciones',
+      mensaje: 'Tu tutor pidió correcciones. Revisá sus observaciones y subí una nueva versión.',
+    }
+  }
+  if (estado_alumno === 'enviada') {
+    return {
+      paso: 3, resultado: 'Resultado', tono: null,
+      mensaje: 'Tu tutor la está revisando. Cuando la apruebe o te pida correcciones, lo vas a ver acá.',
+    }
+  }
+  return {
+    paso: 1, resultado: 'Resultado', tono: null,
+    mensaje: version > 1
+      ? `Subiste la versión ${version}. Cuando esté lista, enviala de nuevo a tu tutor.`
+      : 'Está en borrador. Revisala con TesiBot y, cuando esté lista, enviala a tu tutor.',
+  }
+}
+
+function TesinaProgreso({ tesina }) {
+  const { paso, resultado, tono, mensaje } = calcularProgreso(tesina)
+  const pasos = ['Borrador', 'Enviada', 'En revisión', resultado]
+
+  const colorResultado = {
+    aprobada: { punto: 'bg-green-600', texto: 'text-green-700' },
+    correcciones: { punto: 'bg-amber-500', texto: 'text-amber-700' },
+  }[tono]
+
+  return (
+    <Link
+      to={`/tesinas/${tesina.id}`}
+      className="group sm:col-span-2 bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between gap-4"
+    >
+      <div className="flex items-center gap-4">
+        <div className="flex-shrink-0 w-14 h-14 rounded-xl flex items-center justify-center bg-blue-50 text-blue-600 group-hover:bg-blue-100 transition-colors">
+          <ClipboardList className="w-7 h-7" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Mi tesina</p>
+          <h3 className="font-semibold text-gray-900 text-lg leading-snug">{tesina.titulo}</h3>
+        </div>
+      </div>
+
+      <ol className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:gap-x-1.5 text-xs font-semibold">
+        {pasos.map((nombre, i) => {
+          const numero = i + 1
+          const hecho = numero < paso || (numero === 4 && paso === 4)
+          const actual = numero === paso && paso !== 4
+          const esResultado = numero === 4 && colorResultado
+
+          const punto = esResultado ? colorResultado.punto
+            : hecho ? 'bg-indigo-600'
+            : actual ? 'bg-white ring-2 ring-indigo-600'
+            : 'bg-gray-300'
+          const texto = esResultado ? colorResultado.texto
+            : hecho ? 'text-indigo-800'
+            : actual ? 'text-gray-900'
+            : 'text-gray-400'
+
+          return (
+            <li key={numero} aria-current={actual ? 'step' : undefined} className="flex items-center gap-1.5">
+              {i > 0 && <span className={`hidden sm:block w-6 h-px ${hecho || actual ? 'bg-indigo-300' : 'bg-gray-200'}`} />}
+              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${punto}`} />
+              <span className={`whitespace-nowrap ${texto}`}>{nombre}</span>
+            </li>
+          )
+        })}
+      </ol>
+
+      <p className="text-[13px] text-gray-600">{mensaje}</p>
+    </Link>
+  )
+}
+
 function AlumnoDashboard({ user }) {
-  const [tieneTesina, setTieneTesina] = useState(false)
+  const [tesina, setTesina] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -58,7 +143,7 @@ function AlumnoDashboard({ user }) {
       try {
         const response = await api.get('/tesinas?per_page=1')
         const items = response.data.items || []
-        setTieneTesina(items.length > 0)
+        setTesina(items[0] ?? null)
       } catch (err) {
         console.error('Error al verificar tesina:', err)
       } finally {
@@ -85,21 +170,13 @@ function AlumnoDashboard({ user }) {
   }
 
   const menuItems = [
-    ...(!tieneTesina ? [{
+    ...(!tesina ? [{
       icon: Upload,
       title: 'Subir Tesina',
       subtitle: 'Cargar tu proyecto final',
       path: '/tesinas/subir',
       color: 'indigo',
     }] : []),
-    {
-      icon: ClipboardList,
-      title: 'Mi Tesina',
-      subtitle: 'Ver estado y versiones',
-      path: '/tesinas',
-      color: 'blue',
-    },
-
     {
       icon: MessageSquare,
       title: 'Chat Asistente',
@@ -121,13 +198,6 @@ function AlumnoDashboard({ user }) {
       path: '/ejemplos',
       color: 'purple',
     },
-    {
-      icon: User,
-      title: 'Mi Perfil',
-      subtitle: 'Configuración de cuenta',
-      path: '/perfil',
-      color: 'red',
-    },
   ]
 
   return (
@@ -139,17 +209,10 @@ function AlumnoDashboard({ user }) {
         <p className="text-gray-600 mt-1">
           ¿Qué querés hacer hoy?
         </p>
-        {tieneTesina && (
-          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-700">
-              Ya tenés una tesina registrada. Para enviar correcciones, 
-              entrá a <span className="font-semibold">"Mis Tesinas"</span> y 
-              usá el botón <span className="font-semibold">"Reenviar versión"</span>.
-            </p>
-          </div>
-        )}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-6 ${tesina ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
+        {/* Con tesina cargada, "Mi tesina" muestra su estado y ocupa dos lugares */}
+        {tesina && <TesinaProgreso tesina={tesina} />}
         {menuItems.map((item, i) => (
           <MenuCard key={i} {...item} />
         ))}
@@ -192,13 +255,6 @@ function TutorDashboard({ user }) {
       color: 'purple',
     },
 
-    {
-      icon: User,
-      title: 'Mi Perfil',
-      subtitle: 'Configuración de cuenta',
-      path: '/perfil',
-      color: 'red',
-    },
 
   ]
 
@@ -261,14 +317,6 @@ function AdminDashboard({ user }) {
       path: '/admin/pautas',
       color: 'orange',
     },
-    {
-      icon: ShieldCheck,
-      title: 'Mi Perfil',
-      subtitle: 'Configuración de cuenta',
-      path: '/perfil',
-      color: 'red',
-    },
-
   ]
 
   return (
@@ -288,7 +336,7 @@ function AdminDashboard({ user }) {
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
         {menuItems.map((item, i) => (
           <MenuCard key={i} {...item} />
         ))}

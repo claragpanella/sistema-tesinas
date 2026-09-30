@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogIn, Loader2 } from 'lucide-react';
+import { LogIn, Loader2, BookOpen } from 'lucide-react';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
@@ -29,7 +29,7 @@ export function LoginPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-full mb-4">
-            <LogIn className="w-8 h-8 text-white" />
+            <BookOpen className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Repositorio Inteligente
@@ -113,15 +113,6 @@ export function LoginPage() {
             </p>
           </div>
 
-          {/* Credenciales de prueba */}
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <p className="text-xs text-gray-500 font-semibold mb-2">
-              Credenciales de prueba:
-            </p>
-            <p className="text-xs text-gray-600">
-              Admin: admin@admin.com / admin123
-            </p>
-          </div>
         </div>
       </div>
     </div>
