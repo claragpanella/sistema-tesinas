@@ -648,10 +648,20 @@ INSTRUCCIONES:
                 {"role": "user", "content": prompt},
             ],
             temperature=0.1,
-            max_tokens=300,
+            # gpt-oss es un modelo de razonamiento: los tokens que usa para "pensar"
+            # se descuentan de max_tokens. Con un límite bajo y razonamiento por
+            # defecto, se agotaban antes de escribir la respuesta y llegaba vacía.
+            max_tokens=1000,
+            extra_body={"reasoning_effort": "low"},  # el SDK 0.9 no tiene este parámetro
         )
 
-        referencia = convertir_tablas_a_lista(response.choices[0].message.content.strip())
+        contenido  = (response.choices[0].message.content or "").strip()
+        if not contenido:
+            logger.warning("Groq devolvió una referencia vacía (finish_reason=%s)",
+                           getattr(response.choices[0], "finish_reason", None))
+            return jsonify({"error": "No se pudo generar la referencia. Intentá de nuevo."}), 502
+
+        referencia = convertir_tablas_a_lista(contenido)
         return jsonify({"referencia": referencia})
 
     except Exception:

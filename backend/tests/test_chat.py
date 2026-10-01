@@ -13,12 +13,15 @@ from routes.chat import convertir_tablas_a_lista
 
 
 class GroqFalso:
-    def __init__(self):
+    def __init__(self, respuesta=None):
         self.llamadas = []
+        self.parametros = []
+        self.respuesta = respuesta
 
     def create(self, **kwargs):
         self.llamadas.append(kwargs["messages"])
-        texto = f"respuesta {len(self.llamadas)}"
+        self.parametros.append(kwargs)
+        texto = self.respuesta if self.respuesta is not None else f"respuesta {len(self.llamadas)}"
         return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=texto))])
 
 
@@ -97,3 +100,23 @@ def test_las_tablas_markdown_se_convierten_en_lista():
     resultado = convertir_tablas_a_lista(tabla)
     assert "|" not in resultado
     assert "- **Sección:** Introducción — **Estado:** OK" in resultado
+
+
+LIBRO = {"tipo": "libro", "campos": {"autores": "Pressman, R.", "anio": "2010",
+                                     "titulo": "Ingeniería del software", "editorial": "McGraw-Hill"}}
+
+
+def test_referencia_apa_devuelve_el_texto_generado(client, auth, usuarios, groq_falso):
+    groq_falso.respuesta = "Pressman, R. (2010). *Ingeniería del software*. McGraw-Hill."
+    r = client.post("/chat/generar-referencia", headers=auth["ana"], json=LIBRO)
+    assert r.status_code == 200
+    assert r.get_json()["referencia"].startswith("Pressman, R. (2010)")
+    # El razonamiento se limita para que no consuma los tokens de la respuesta
+    assert groq_falso.parametros[-1]["extra_body"] == {"reasoning_effort": "low"}
+
+
+def test_referencia_apa_vacia_devuelve_error(client, auth, usuarios, groq_falso):
+    groq_falso.respuesta = ""
+    r = client.post("/chat/generar-referencia", headers=auth["ana"], json=LIBRO)
+    assert r.status_code == 502
+    assert "referencia" in r.get_json()["error"]
