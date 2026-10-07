@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { UserPlus, Loader2, BookOpen } from 'lucide-react'
 import api from '../services/api'
+import { PasswordInput } from '../components/Common/PasswordInput'
 
 export function RegisterPage() {
   const navigate = useNavigate()
@@ -130,8 +131,7 @@ export function RegisterPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Contraseña
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 name="password"
                 value={form.password}
                 onChange={handleChange}
@@ -177,8 +177,7 @@ export function RegisterPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Confirmar contraseña
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 name="confirmar"
                 value={form.confirmar}
                 onChange={handleChange}

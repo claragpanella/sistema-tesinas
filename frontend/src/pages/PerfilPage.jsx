@@ -14,6 +14,7 @@ import {
   BookOpen,
   Save
 } from 'lucide-react'
+import { PasswordInput } from '../components/Common/PasswordInput'
 
 // =========================
 // Sección cambiar contraseña
@@ -99,8 +100,7 @@ function CambiarPasswordForm() {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Contraseña actual *
           </label>
-          <input
-            type="password"
+          <PasswordInput
             name="password_actual"
             value={form.password_actual}
             onChange={handleChange}
@@ -115,8 +115,7 @@ function CambiarPasswordForm() {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Nueva contraseña *
           </label>
-          <input
-            type="password"
+          <PasswordInput
             name="password_nueva"
             value={form.password_nueva}
             onChange={handleChange}
@@ -159,8 +158,7 @@ function CambiarPasswordForm() {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Confirmar nueva contraseña *
           </label>
-          <input
-            type="password"
+          <PasswordInput
             name="confirmar"
             value={form.confirmar}
             onChange={handleChange}

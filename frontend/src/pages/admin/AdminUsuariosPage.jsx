@@ -19,6 +19,7 @@ import {
   ToggleLeft,
   ToggleRight
 } from 'lucide-react'
+import { PasswordInput } from '../../components/Common/PasswordInput'
 
 // =========================
 // Modal crear/editar alumno
@@ -137,8 +138,7 @@ function UsuarioModal({ usuario, onClose, onSaved }) {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Contraseña *
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 name="password"
                 value={form.password}
                 onChange={handleChange}
@@ -249,8 +249,7 @@ function CambiarPasswordModal({ usuario, onClose, onSaved }) {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Nueva contraseña *
             </label>
-            <input
-              type="password"
+            <PasswordInput
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="input"
@@ -264,8 +263,7 @@ function CambiarPasswordModal({ usuario, onClose, onSaved }) {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Confirmar contraseña *
             </label>
-            <input
-              type="password"
+            <PasswordInput
               value={confirmar}
               onChange={(e) => setConfirmar(e.target.value)}
               className="input"

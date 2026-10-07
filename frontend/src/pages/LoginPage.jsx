@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LogIn, Loader2, BookOpen } from 'lucide-react';
+import { PasswordInput } from '../components/Common/PasswordInput';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
@@ -71,8 +72,7 @@ export function LoginPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Contraseña
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="input"
