@@ -9,6 +9,7 @@ import docx
 import pytest
 
 import routes.chat as chat
+from utils.db_utils import get_db
 from routes.chat import convertir_tablas_a_lista
 
 
@@ -120,3 +121,92 @@ def test_referencia_apa_vacia_devuelve_error(client, auth, usuarios, groq_falso)
     r = client.post("/chat/generar-referencia", headers=auth["ana"], json=LIBRO)
     assert r.status_code == 502
     assert "referencia" in r.get_json()["error"]
+
+
+# ─── Pautas institucionales como contexto de TesiBot ─────────────────────────
+
+@pytest.fixture
+def pautas_conocidas():
+    """Deja una sola categoría con una pauta conocida y al final restaura las originales."""
+    with get_db() as conn:
+        categorias = [tuple(r) for r in conn.execute("SELECT id, nombre, orden FROM categorias_pautas")]
+        pautas = [tuple(r) for r in conn.execute(
+            "SELECT id, categoria_id, titulo, descripcion, enlace_externo, orden FROM pautas")]
+        conn.execute("DELETE FROM pautas")
+        conn.execute("DELETE FROM categorias_pautas")
+        cat = conn.execute("INSERT INTO categorias_pautas (nombre, orden) VALUES ('Formato del documento', 1)").lastrowid
+        pid = conn.execute(
+            "INSERT INTO pautas (categoria_id, titulo, descripcion, orden) VALUES (?, ?, ?, 1)",
+            (cat, "Extensión del trabajo", "El documento debe tener entre 120 y 200 páginas."),
+        ).lastrowid
+    yield pid
+    with get_db() as conn:
+        conn.execute("DELETE FROM pautas")
+        conn.execute("DELETE FROM categorias_pautas")
+        conn.executemany("INSERT INTO categorias_pautas (id, nombre, orden) VALUES (?, ?, ?)", categorias)
+        conn.executemany(
+            "INSERT INTO pautas (id, categoria_id, titulo, descripcion, enlace_externo, orden) VALUES (?, ?, ?, ?, ?, ?)",
+            pautas)
+
+
+def prompt_de_sistema(groq_falso):
+    return groq_falso.llamadas[-1][0]["content"]
+
+
+def test_las_pautas_institucionales_se_envian_a_tesibot(client, auth, groq_falso, pautas_conocidas):
+    client.post("/chat/asistente", headers=auth["ana"], json={"message": "¿Cuántas páginas tiene que tener?"})
+    prompt = prompt_de_sistema(groq_falso)
+    assert "PAUTAS INSTITUCIONALES" in prompt
+    assert "## Formato del documento" in prompt
+    assert "Extensión del trabajo: El documento debe tener entre 120 y 200 páginas." in prompt
+    # Las pautas las carga la facultad, no el usuario: el modelo no debe atribuírselas
+    assert "el usuario no te las compartió" in prompt
+    assert "No le atribuyas a la facultad nada que no figure en estas pautas" in prompt
+
+
+def test_las_pautas_tambien_llegan_al_tutor(client, auth, groq_falso, pautas_conocidas):
+    client.post("/chat/asistente", headers=auth["tutor"], json={"message": "hola"})
+    assert "Extensión del trabajo" in prompt_de_sistema(groq_falso)
+
+
+def test_un_cambio_en_las_pautas_se_refleja_en_la_siguiente_consulta(client, auth, groq_falso, pautas_conocidas):
+    client.post("/chat/asistente", headers=auth["ana"], json={"message": "hola"})
+    with get_db() as conn:
+        conn.execute("UPDATE pautas SET descripcion = ? WHERE id = ?",
+                     ("El documento debe tener entre 100 y 150 páginas.", pautas_conocidas))
+    client.post("/chat/asistente", headers=auth["ana"], json={"message": "hola"})
+    prompt = prompt_de_sistema(groq_falso)
+    assert "entre 100 y 150 páginas" in prompt
+    assert "entre 120 y 200 páginas" not in prompt
+
+
+def test_sin_pautas_no_se_agrega_el_bloque(client, auth, groq_falso, pautas_conocidas):
+    with get_db() as conn:
+        conn.execute("DELETE FROM pautas")
+    client.post("/chat/asistente", headers=auth["ana"], json={"message": "hola"})
+    assert "PAUTAS INSTITUCIONALES" not in prompt_de_sistema(groq_falso)
+
+
+def test_las_pautas_se_recortan_si_superan_el_limite(monkeypatch, pautas_conocidas):
+    with get_db() as conn:
+        cat = conn.execute("SELECT id FROM categorias_pautas").fetchone()[0]
+        for i in range(2, 30):
+            conn.execute("INSERT INTO pautas (categoria_id, titulo, descripcion, orden) VALUES (?, ?, ?, ?)",
+                         (cat, f"Pauta {i}", "texto " * 40, i))
+    monkeypatch.setattr(chat, "LIMITE_CARACTERES_PAUTAS", 1000)
+    with get_db() as conn:
+        texto = chat.obtener_pautas_institucionales(conn.cursor())
+    assert 0 < len(texto) <= 1000
+    assert texto.startswith("## Formato del documento")  # se conserva el orden
+
+
+def test_si_fallan_las_pautas_el_chat_sigue_funcionando(client, auth, groq_falso):
+    with get_db() as conn:
+        conn.execute("ALTER TABLE pautas RENAME TO pautas_tmp")
+    try:
+        r = client.post("/chat/asistente", headers=auth["ana"], json={"message": "hola"})
+    finally:
+        with get_db() as conn:
+            conn.execute("ALTER TABLE pautas_tmp RENAME TO pautas")
+    assert r.status_code == 200
+    assert "PAUTAS INSTITUCIONALES" not in prompt_de_sistema(groq_falso)

@@ -17,6 +17,7 @@ chat_bp = Blueprint('chat', __name__)
 # ─── Constantes ───────────────────────────────────────────────────────────────
 HISTORIAL_LIMITE = 20  # mensajes del historial enviados a Groq
 LIMITE_CARACTERES_TESINA = 12000  # extracto de la tesina que se envía como contexto
+LIMITE_CARACTERES_PAUTAS = 8000   # pautas institucionales que se envían como contexto
 PALABRAS_POR_PAGINA = 250         # estimación estándar para calcular páginas
 
 # ─── Cliente Groq ─────────────────────────────────────────────────────────────
@@ -100,6 +101,77 @@ def obtener_tesina_autorizada(cursor, tesina_id: int, user_id: int, user_role: s
     return cursor.fetchone()
 
 
+# ─── Pautas institucionales como contexto ────────────────────────────────────
+def obtener_pautas_institucionales(cursor) -> str:
+    """
+    Arma un texto con las pautas institucionales cargadas en la base, agrupadas
+    por categoría, para enviarlo al modelo como contexto. Así TesiBot responde
+    según la normativa de la facultad y cualquier cambio que haga el
+    administrador desde el panel se refleja en la siguiente consulta, sin tocar
+    el código. Si no hay pautas o la consulta falla, devuelve "" y el chat sigue
+    funcionando sin este contexto.
+    """
+    try:
+        cursor.execute("""
+            SELECT c.nombre AS categoria, p.titulo, p.descripcion
+            FROM pautas p
+            LEFT JOIN categorias_pautas c ON p.categoria_id = c.id
+            ORDER BY c.orden, c.id, p.orden, p.id
+        """)
+        filas = cursor.fetchall()
+    except Exception:
+        logger.exception("No se pudieron leer las pautas institucionales")
+        return ""
+
+    bloques = []
+    categoria_actual = object()
+    largo = 0
+    for fila in filas:
+        lineas = []
+        if fila['categoria'] != categoria_actual:
+            categoria_actual = fila['categoria']
+            lineas.append(f"\n## {categoria_actual or 'Sin categoría'}")
+        descripcion = " ".join((fila['descripcion'] or "").split())
+        lineas.append(f"- {fila['titulo']}: {descripcion}")
+        bloque = "\n".join(lineas)
+        if largo + len(bloque) > LIMITE_CARACTERES_PAUTAS:
+            logger.warning("Las pautas superan %s caracteres; se envían recortadas",
+                           LIMITE_CARACTERES_PAUTAS)
+            break
+        bloques.append(bloque)
+        largo += len(bloque)
+
+    return "\n".join(bloques).strip()
+
+
+def construir_contexto_pautas(pautas: str) -> str:
+    """Envuelve las pautas con las instrucciones sobre cómo usarlas."""
+    if not pautas:
+        return ""
+    return (
+        "PAUTAS INSTITUCIONALES DE LA FACULTAD: son la normativa oficial para "
+        "elaborar, entregar y defender la tesina. Las carga la administración de "
+        "la facultad en el sistema; el usuario no te las compartió, así que nunca "
+        "digas \"según lo que me compartiste\" ni algo parecido: referite a ellas "
+        "como \"las pautas de la facultad\".\n"
+        "- Cuando la consulta trate sobre procedimientos, formato, estructura, "
+        "bibliografía, impresión, defensa o redacción y una pauta la responda, "
+        "basate en ella y mencioná su título.\n"
+        "- Distinguí siempre la fuente: lo que sale de una pauta, atribuíselo a la "
+        "facultad; lo que sale de la norma APA, atribuíselo a APA 7. No le "
+        "atribuyas a la facultad nada que no figure en estas pautas.\n"
+        "- Si las pautas no tratan el tema consultado (por ejemplo, el interlineado "
+        "o la fuente), decí que las pautas de la facultad no lo especifican y "
+        "respondé según APA 7, sugiriendo confirmarlo con el tutor.\n"
+        "- Si una pauta difiere de la norma APA, explicá la diferencia e indicá que "
+        "para la tesina rige la pauta de la facultad.\n"
+        "- Si estás revisando una tesina, verificá también que cumpla estas pautas.\n\n"
+        "=== PAUTAS ===\n"
+        f"{pautas}\n"
+        "=== FIN PAUTAS ==="
+    )
+
+
 # ─── Respuesta mock (fallback sin Groq) ──────────────────────────────────────
 def get_mock_response(user_message: str, tesina_titulo: str | None = None) -> str:
     msg_lower = user_message.lower()
@@ -160,7 +232,7 @@ FORMATO DE RESPUESTA:
 - Para listas o comparaciones, usá listas con guiones o texto corrido, con saltos de línea normales.
 - Podés usar **negrita** y *cursiva* en formato Markdown simple.
 
-DATOS EXACTOS DE NORMAS APA 7ma edición (usá siempre estos valores, no los reformules ni los calcules):
+DATOS EXACTOS DE NORMAS APA 7ma edición (usá siempre estos valores, no los reformules ni los calcules; si una pauta institucional de la facultad indica otra cosa, para la tesina rige la pauta):
 - Márgenes: 2,54 cm (1 pulgada) en los cuatro lados.
 - Fuente: Times New Roman 12 pt, Calibri 11 pt, Arial 11 pt, Georgia 11 pt o Lucida Sans Unicode 10 pt.
 - Interlineado: doble (2,0) en todo el texto, incluyendo títulos y referencias.
@@ -296,9 +368,13 @@ def chat_asistente():
         nombre_usuario       = "usuario"
         tesina_id            = tesina_id_frontend
         historial_mensajes   = []
+        contexto_pautas      = ""
 
         with get_db() as conn:
             cursor = conn.cursor()
+
+            # Pautas institucionales vigentes (se leen en cada consulta)
+            contexto_pautas = construir_contexto_pautas(obtener_pautas_institucionales(cursor))
 
             # Nombre del usuario
             cursor.execute("SELECT nombre FROM usuarios WHERE id = ?", (user_id,))
@@ -407,6 +483,7 @@ def chat_asistente():
             + f"\n\nEl nombre del {nombre_rol} con quien estás hablando es {nombre_usuario}. "
               "Saludalo usando su nombre completo al inicio de la conversación si es el primer mensaje. "
               "No uses ningún otro nombre para referirte a esta persona."
+            + (f"\n\n{contexto_pautas}" if contexto_pautas else "")
             + (f"\n\n{tesina_context}" if tesina_context else "")
             + aviso_alumno
         )

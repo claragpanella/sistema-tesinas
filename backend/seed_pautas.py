@@ -32,7 +32,7 @@ def cargar_pautas():
             "Estructura del trabajo",
             "Bibliografía y normas APA",
             "Impresión y presentación",
-            "Defensa de la tesis",
+            "Defensa de la tesina",
             "Recomendaciones de redacción"
         ]
 
@@ -51,39 +51,46 @@ def cargar_pautas():
         # =========================
         # 3. Insertar pautas
         # =========================
+        # Contenido tomado del "Documento general de redacción y exposición de
+        # tesis, tesina o trabajo de fin de carrera" de la carrera. TesiBot usa
+        # estas pautas como contexto, así que deben reflejar la guía tal cual.
         pautas = [
 
             # PROCEDIMIENTOS GENERALES
             {
                 "categoria": "Procedimientos generales",
-                "titulo": "Carpeta compartida",
+                "titulo": "Carpeta compartida del trabajo",
                 "descripcion": """
 Crear una carpeta compartida en Google Drive donde volcar TODOS los documentos del trabajo:
-presentaciones, videos, bibliografía, imágenes, prototipos, etc.
-Esta carpeta debe compartirse con los profesores evaluadores y/o tutor asignado.
+presentaciones, videos del desarrollo y del proyecto funcionando, bibliografía utilizada,
+imágenes, la presentación final y videos de prototipos. El vínculo se envía por correo a los
+profesores directores y colaboradores.
+
+Dentro de ella, crear una subcarpeta "Fuentes del proyecto" con las fuentes del trabajo:
+documentos .doc, bibliografía, proyectos de desarrollo y carpetas de fuentes de las herramientas utilizadas.
                 """,
                 "orden": 1
             },
 
             {
                 "categoria": "Procedimientos generales",
-                "titulo": "Subcarpeta de fuentes",
+                "titulo": "Nombre de las versiones del documento",
                 "descripcion": """
-Crear una subcarpeta llamada "Fuentes del proyecto" donde se deberán colocar:
-documentos, código fuente, proyectos, herramientas utilizadas y versiones del trabajo.
+Las versiones del documento general se suben siempre en PDF, para evitar problemas de formato.
+El nombre del archivo lleva apellido y nombre del alumno, la fecha y el número de versión.
+
+Ejemplo: LopezEduardo20200422v05.pdf
                 """,
                 "orden": 2
             },
 
             {
                 "categoria": "Procedimientos generales",
-                "titulo": "Formato de versiones",
+                "titulo": "Avances y correcciones",
                 "descripcion": """
-Las versiones del documento deben subirse en formato PDF con la nomenclatura:
-
-ApellidoNombre_AAAA-MM-DD_vXX.pdf
-
-Ejemplo: LopezEduardo_2025-04-22_v05.pdf
+Avisar por correo al grupo de evaluación cada avance sustancial que sea necesario revisar.
+Los comentarios de los revisores se hacen en un archivo anexo de sugerencias y correcciones,
+creado en la misma carpeta compartida, en formato Google Docs y con permiso de escritura para cada revisor.
                 """,
                 "orden": 3
             },
@@ -91,51 +98,70 @@ Ejemplo: LopezEduardo_2025-04-22_v05.pdf
             # FORMATO DEL DOCUMENTO
             {
                 "categoria": "Formato del documento",
-                "titulo": "Formato general",
+                "titulo": "Encabezados",
                 "descripcion": """
-El trabajo debe presentarse en tamaño A4, fuente Times New Roman 12,
-interlineado 1.5, márgenes estándar.
+Las cabeceras no deben figurar en las páginas de apartados o títulos de capítulos,
+como la carátula, los agradecimientos, el resumen o la introducción.
+En las hojas de texto, el encabezado sigue este formato:
+
+(nombre del capítulo actual)   (título de la tesis) - (nombre y apellido del alumno)
                 """,
                 "orden": 1
             },
 
             {
                 "categoria": "Formato del documento",
-                "titulo": "Encabezados y pies de página",
+                "titulo": "Pies de página",
                 "descripcion": """
-Las cabeceras no deben figurar en carátulas, agradecimientos, resumen o introducción.
-Los pies de página deben estar presentes en el resto del documento.
+Los pies de página van en todas las páginas menos en las carátulas, con este formato:
+
+Universidad y carrera   año   número de página / cantidad de páginas
                 """,
                 "orden": 2
+            },
+
+            {
+                "categoria": "Formato del documento",
+                "titulo": "Notas al pie y referencias cruzadas",
+                "descripcion": """
+Utilizar notas al pie donde corresponda ampliar algún concepto sin perder el hilo del relato.
+Utilizar referencias cruzadas cuando se mencione un capítulo o tema que está abordado en otra parte del documento.
+                """,
+                "orden": 3
             },
 
             # ESTRUCTURA DEL TRABAJO
             {
                 "categoria": "Estructura del trabajo",
-                "titulo": "Apartados obligatorios",
+                "titulo": "Apartados del documento",
                 "descripcion": """
-El trabajo debe incluir como mínimo:
+El documento debe incluir los siguientes apartados:
 
-- Carátula  
-- Agradecimientos  
-- Resumen  
-- Introducción  
-- Marco teórico  
-- Desarrollo  
-- Implementación  
-- Conclusiones  
-- Bibliografía  
-- Anexos  
+- Carátula
+- Agradecimientos
+- Resumen
+- Introducción
+- Desarrollo del tema y planteo de la hipótesis a demostrar
+- Objetivos generales y particulares
+- Índice de contenido
+- Índice de figuras
+- Marco teórico
+- Capítulos de desarrollo de los temas abordados
+- Desarrollo de la implementación
+- Conclusiones: conclusiones generales, inconvenientes resueltos, camino recorrido y justificación del cumplimiento o no de los objetivos e hipótesis. Junto con la introducción, es el apartado más importante del proyecto
+- Contribuciones y aportes a la sociedad, a otros alumnos o a interesados en la temática
+- Futuro del proyecto: puntos a profundizar, otras metodologías o herramientas
+- Bibliografía
+- Anexos y apéndices
                 """,
                 "orden": 1
             },
 
             {
                 "categoria": "Estructura del trabajo",
-                "titulo": "Conclusiones",
+                "titulo": "Extensión del documento",
                 "descripcion": """
-La sección de conclusiones es una de las más importantes del proyecto.
-Debe incluir logros, dificultades, cumplimiento de objetivos y aportes realizados.
+La extensión del documento debería rondar entre las 120 y las 200 páginas aproximadamente.
                 """,
                 "orden": 2
             },
@@ -143,50 +169,53 @@ Debe incluir logros, dificultades, cumplimiento de objetivos y aportes realizado
             # BIBLIOGRAFÍA
             {
                 "categoria": "Bibliografía y normas APA",
-                "titulo": "Uso de normas APA",
+                "titulo": "Bibliografía con normas APA",
                 "descripcion": """
-Todas las citas y referencias bibliográficas deben ajustarse a las normas APA vigentes.
-Toda referencia en bibliografía debe haber sido citada en el texto.
+La bibliografía debe cumplir con el formato establecido por las normas APA.
+Toda referencia del apartado bibliográfico tiene que haber sido citada al menos una vez en el cuerpo del documento.
+Se recomienda numerar las entradas ([1], [2], ...) para que sea más fácil citarlas en el cuerpo del documento.
                 """,
-                "enlace_externo": "http://normasapa.com",
+                "enlace_externo": "http://normasapa.com/como-citar-referenciar-libros-con-normas-apa/",
                 "orden": 1
             },
 
             # IMPRESIÓN
             {
                 "categoria": "Impresión y presentación",
-                "titulo": "Formato de impresión",
+                "titulo": "Impresión del documento",
                 "descripcion": """
-El documento final debe imprimirse en dos copias:
-
-- Una para la Universidad  
-- Una para el alumno firmada por los profesores  
-
-Se recomienda anillado metálico con tapas duras tipo alto impacto.
+El documento se imprime en 2 copias: una queda en la universidad y la otra se la lleva el tesista, firmada por los profesores.
+Formatos posibles: encuadernado con tapas duras, o anillado metálico con tapas duras tipo alto impacto (el más utilizado),
+con tapas impresas con un diseño acorde al proyecto (nombre del trabajo, UCH y año).
+El contenido se imprime en papel de buen gramaje semi ilustración; puede ser doble faz siempre que la cantidad de hojas no sea menor a 120.
                 """,
                 "orden": 1
             },
 
             # DEFENSA
             {
-                "categoria": "Defensa de la tesis",
-                "titulo": "Duración de la presentación",
+                "categoria": "Defensa de la tesina",
+                "titulo": "Presentación para la defensa",
                 "descripcion": """
-La exposición debe durar aproximadamente 20 minutos más preguntas.
-Se recomienda no superar 10 a 15 diapositivas.
+Las diapositivas no deben estar cargadas de texto: en general, conceptuales y gráficas.
+La exposición dura 20 minutos, más las preguntas que surjan. Simular la presentación y, si se excede el tiempo,
+sacar las pantallas menos significativas o teóricas, o reducir el tiempo de cada una.
+Usar no más de 10 a 15 diapositivas.
+Si se debe mostrar una aplicación, preparar un video ilustrativo y explicarlo al reproducirlo en vivo.
                 """,
                 "orden": 1
             },
 
             {
-                "categoria": "Defensa de la tesis",
-                "titulo": "Recomendaciones de exposición",
+                "categoria": "Defensa de la tesina",
+                "titulo": "Criterios de exposición",
                 "descripcion": """
-- Hablar con seguridad y fluidez  
-- Vestimenta formal  
-- No leer diapositivas  
-- Usar material visual claro  
-- Ensayar previamente  
+- Señalar en la pantalla con un puntero láser o una regla, no con la mano
+- Hablar en forma fluida y segura de lo que se explica
+- Mantener una postura correcta, de pie y sin las manos en los bolsillos
+- Si se usa un equipo, apoyar el teclado en un soporte alto para seguir de pie frente al público
+- Vestimenta estrictamente formal
+- Pueden asistir familiares y amigos; también se invita a docentes y alumnos de los últimos años
                 """,
                 "orden": 2
             },
@@ -196,8 +225,8 @@ Se recomienda no superar 10 a 15 diapositivas.
                 "categoria": "Recomendaciones de redacción",
                 "titulo": "Tiempos verbales",
                 "descripcion": """
-Cuidar el uso de tiempos verbales según la sección del trabajo.
-Se recomienda consultar guías de redacción académica.
+Tener en cuenta los tiempos verbales en la redacción según la sección del trabajo.
+Otro artículo de referencia: https://comohacerpara.com/usar-tiempos-verbales-tesis-grado-3591e.html
                 """,
                 "enlace_externo": "https://www.uvrcorrectoresdetextos.com/post/qué-tiempos-verbales-debes-usar-en-cada-sección-de-tu-tesis",
                 "orden": 1
