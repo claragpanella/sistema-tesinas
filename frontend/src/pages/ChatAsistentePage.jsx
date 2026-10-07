@@ -27,6 +27,7 @@ import {
   MessageCircle,
   Search,
   AlertTriangle,
+  History,
 } from 'lucide-react'
 
 // ─── Constantes de configuración por rol ────────────────────────────────────
@@ -129,9 +130,10 @@ export function ChatAsistentePage() {
   const [editandoTitulo, setEditandoTitulo] = useState(null)
   const [nuevoTitulo, setNuevoTitulo] = useState('')
   const [mostrarGeneradorBiblio, setMostrarGeneradorBiblio] = useState(false)
+  const [mostrarHistorial, setMostrarHistorial] = useState(false) // panel de conversaciones en celulares
   const [searchParams] = useSearchParams()
 
-  const messagesEndRef = useRef(null)
+  const messagesContainerRef = useRef(null)
   const pendingAutoAnalisis = useRef(false)
   const hasAccess = isAlumno || isTutor
 
@@ -257,9 +259,12 @@ export function ChatAsistentePage() {
     setNuevoTitulo('')
   }, [])
 
+  // Se desplaza solo el contenedor de mensajes (scrollIntoView movía también
+  // la página entera y en celulares dejaba el encabezado fuera de la pantalla)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    const contenedor = messagesContainerRef.current
+    if (contenedor) contenedor.scrollTo({ top: contenedor.scrollHeight, behavior: 'smooth' })
+  }, [messages, loading])
 
   // ─── Enviar mensaje ───────────────────────────────────────────────────────
   // sendMessage: lógica central, acepta texto y tesina_id explícitos para
@@ -385,140 +390,178 @@ export function ChatAsistentePage() {
   const cc = colorClasses
 
   // ─── Render ───────────────────────────────────────────────────────────────
-  return (
-    <Layout>
-      <div className="h-[calc(100vh-8rem)] flex gap-4">
+  // Contenido del historial: se muestra al costado en pantallas grandes
+  // y como panel deslizable en celulares.
+  const contenidoHistorial = (
+    <>
 
-        {/* ── Sidebar ─────────────────────────────────────────────────────── */}
-        <div className="w-80 bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col">
+        <div className="p-4 border-b border-gray-100 flex flex-col gap-2">
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${rolConfig.badge.bg} mb-1`}>
+            <Bot className={`w-4 h-4 ${rolConfig.badge.text}`} />
+            <span className={`text-xs font-medium ${rolConfig.badge.text}`}>
+              {rolConfig.badge.label}
+            </span>
+          </div>
 
-          <div className="p-4 border-b border-gray-100 flex flex-col gap-2">
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${rolConfig.badge.bg} mb-1`}>
-              <Bot className={`w-4 h-4 ${rolConfig.badge.text}`} />
-              <span className={`text-xs font-medium ${rolConfig.badge.text}`}>
-                {rolConfig.badge.label}
-              </span>
-            </div>
+          <button
+            onClick={() => { nuevaConversacion(); setMostrarHistorial(false) }}
+            className={`w-full flex items-center justify-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors ${cc.btnPrimary}`}
+          >
+            <Plus className="w-4 h-4" />
+            Nueva conversación
+          </button>
 
+          {isAlumno && (
             <button
-              onClick={nuevaConversacion}
-              className={`w-full flex items-center justify-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors ${cc.btnPrimary}`}
+              onClick={() => { setMostrarGeneradorBiblio(true); setMostrarHistorial(false) }}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg transition-colors"
             >
-              <Plus className="w-4 h-4" />
-              Nueva conversación
+              Generar bibliografía APA
             </button>
-
-            {isAlumno && (
-              <button
-                onClick={() => setMostrarGeneradorBiblio(true)}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg transition-colors"
-              >
-                Generar bibliografía APA
-              </button>
-            )}
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-2">
-            {loadingConversaciones ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-              </div>
-            ) : conversaciones.length === 0 ? (
-              <div className="text-center py-8 px-4">
-                <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-sm text-gray-500">Aún no tenés conversaciones</p>
-                <p className="text-xs text-gray-400 mt-1">Empezá una nueva para guardar el historial</p>
-              </div>
-            ) : (
-              <div className="space-y-1">
-                {conversaciones.map((conv) => (
-                  <div
-                    key={conv.id}
-                    onClick={() => cargarConversacion(conv.id)}
-                    className={`group relative p-3 rounded-lg cursor-pointer transition-all ${
-                      conversacionActual?.id === conv.id
-                        ? `${cc.selectedConv} border`
-                        : 'hover:bg-gray-50 border border-transparent'
-                    }`}
-                  >
-                    {editandoTitulo === conv.id ? (
-                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="text"
-                          value={nuevoTitulo}
-                          onChange={(e) => setNuevoTitulo(e.target.value)}
-                          className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded"
-                          autoFocus
-                          onKeyDown={(e) => e.key === 'Enter' && guardarTitulo(conv.id)}
-                        />
-                        <button
-                          onClick={() => guardarTitulo(conv.id)}
-                          className="p-1 text-green-600 hover:bg-green-50 rounded"
-                        >
-                          <Check className="w-4 h-4" />
-                        </button>
-                        <button onClick={cancelarEdicion} className="p-1 text-red-600 hover:bg-red-50 rounded">
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <p className="text-sm font-medium text-gray-900 line-clamp-2 flex-1">
-                            {conv.titulo}
-                          </p>
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={(e) => iniciarEdicionTitulo(conv, e)}
-                              className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"
-                              title="Editar título"
-                            >
-                              <Edit2 className="w-3 h-3" />
-                            </button>
-                            <ConfirmDeleteButton onConfirm={() => eliminarConversacion(conv.id)} />
-                          </div>
-                        </div>
-
-                        {conv.tesina_titulo && (
-                          <p className="text-xs text-gray-500 mb-1">📄 {conv.tesina_titulo}</p>
-                        )}
-
-                        <div className="flex items-center justify-between text-xs text-gray-400">
-                          <span>{conv.total_mensajes || 0} mensajes</span>
-                          <span>
-                            {conv.updated_at
-                              ? formatearFecha(conv.updated_at)
-                              : 'Hoy'}
-                          </span>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          )}
         </div>
 
-        {/* ── Área principal ───────────────────────────────────────────────── */}
-        <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col">
+        <div className="flex-1 overflow-y-auto p-2">
+          {loadingConversaciones ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+            </div>
+          ) : conversaciones.length === 0 ? (
+            <div className="text-center py-8 px-4">
+              <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-sm text-gray-500">Aún no tenés conversaciones</p>
+              <p className="text-xs text-gray-400 mt-1">Empezá una nueva para guardar el historial</p>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {conversaciones.map((conv) => (
+                <div
+                  key={conv.id}
+                  onClick={() => { cargarConversacion(conv.id); setMostrarHistorial(false) }}
+                  className={`group relative p-3 rounded-lg cursor-pointer transition-all ${
+                    conversacionActual?.id === conv.id
+                      ? `${cc.selectedConv} border`
+                      : 'hover:bg-gray-50 border border-transparent'
+                  }`}
+                >
+                  {editandoTitulo === conv.id ? (
+                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="text"
+                        value={nuevoTitulo}
+                        onChange={(e) => setNuevoTitulo(e.target.value)}
+                        className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded"
+                        autoFocus
+                        onKeyDown={(e) => e.key === 'Enter' && guardarTitulo(conv.id)}
+                      />
+                      <button
+                        onClick={() => guardarTitulo(conv.id)}
+                        className="p-1 text-green-600 hover:bg-green-50 rounded"
+                      >
+                        <Check className="w-4 h-4" />
+                      </button>
+                      <button onClick={cancelarEdicion} className="p-1 text-red-600 hover:bg-red-50 rounded">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <p className="text-sm font-medium text-gray-900 line-clamp-2 flex-1">
+                          {conv.titulo}
+                        </p>
+                        <div className="flex items-center gap-1 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={(e) => iniciarEdicionTitulo(conv, e)}
+                            className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"
+                            title="Editar título"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                          </button>
+                          <ConfirmDeleteButton onConfirm={() => eliminarConversacion(conv.id)} />
+                        </div>
+                      </div>
 
-          <div className="p-4 border-b border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">
-                  {conversacionActual?.titulo || 'Chat Asistente'}
-                </h2>
-                <p className="text-sm text-gray-500">{rolConfig.subtitulo}</p>
+                      {conv.tesina_titulo && (
+                        <p className="text-xs text-gray-500 mb-1">📄 {conv.tesina_titulo}</p>
+                      )}
+
+                      <div className="flex items-center justify-between text-xs text-gray-400">
+                        <span>{conv.total_mensajes || 0} mensajes</span>
+                        <span>
+                          {conv.updated_at
+                            ? formatearFecha(conv.updated_at)
+                            : 'Hoy'}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+    </>
+  )
+
+  return (
+    <Layout>
+      <div className="h-[calc(100dvh-6rem)] sm:h-[calc(100dvh-8rem)] flex gap-4">
+
+        {/* ── Sidebar (pantallas grandes) ──────────────────────────────────── */}
+        <div className="hidden lg:flex w-80 bg-white rounded-xl shadow-sm border border-gray-100 flex-col">
+          {contenidoHistorial}
+        </div>
+
+        {/* ── Panel de conversaciones (celulares) ───────────────────────────── */}
+        {mostrarHistorial && (
+          <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Conversaciones">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setMostrarHistorial(false)} />
+            <div className="absolute inset-y-0 left-0 w-[85%] max-w-xs bg-white shadow-xl flex flex-col">
+              <div className="flex items-center justify-between px-4 pt-4">
+                <span className="font-semibold text-gray-900">Conversaciones</span>
+                <button
+                  onClick={() => setMostrarHistorial(false)}
+                  className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg"
+                  aria-label="Cerrar"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              {contenidoHistorial}
+            </div>
+          </div>
+        )}
+
+        {/* ── Área principal ───────────────────────────────────────────────── */}
+        <div className="flex-1 min-w-0 bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col">
+
+          <div className="p-3 sm:p-4 border-b border-gray-100">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+              <div className="flex items-start gap-2 min-w-0">
+                <button
+                  onClick={() => setMostrarHistorial(true)}
+                  className="lg:hidden p-2 -ml-1 text-gray-600 hover:bg-gray-100 rounded-lg flex-shrink-0"
+                  aria-label="Ver conversaciones"
+                  title="Conversaciones"
+                >
+                  <History className="w-5 h-5" />
+                </button>
+                <div className="min-w-0">
+                  <h2 className="text-base sm:text-lg font-bold text-gray-900 truncate">
+                    {conversacionActual?.titulo || 'Chat Asistente'}
+                  </h2>
+                  <p className="text-xs sm:text-sm text-gray-500">{rolConfig.subtitulo}</p>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <select
                   value={selectedTesina || ''}
                   onChange={(e) => {
                     setSelectedTesina(e.target.value ? parseInt(e.target.value, 10) : null)
                   }}
-                  className={`input text-sm w-64 focus:outline-none focus:ring-2 ${cc.ring}`}
+                  className={`input text-sm w-full lg:w-64 focus:outline-none focus:ring-2 ${cc.ring}`}
                   disabled={messages.length > 0}
                 >
                   <option value="">{rolConfig.selectorLabel}</option>
@@ -557,16 +600,16 @@ export function ChatAsistentePage() {
           </div>
 
           {/* ── Mensajes ───────────────────────────────────────────────────── */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4">
 
             {/* Pantalla de bienvenida o mensajes */}
             {messages.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center">
+              <div className="min-h-full flex flex-col items-center justify-center">
                 <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${cc.botIcon}`}>
                   <Bot className="w-9 h-9" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">{rolConfig.bienvenida}</h3>
-                <p className="text-gray-600 mb-8 text-center max-w-md">{rolConfig.descripcion}</p>
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 text-center">{rolConfig.bienvenida}</h3>
+                <p className="text-sm sm:text-base text-gray-600 mb-6 sm:mb-8 text-center max-w-md">{rolConfig.descripcion}</p>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full max-w-3xl">
                   {rolConfig.sugerencias.map((sug, i) => (
@@ -589,18 +632,18 @@ export function ChatAsistentePage() {
                     className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     {msg.role === 'assistant' && (
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${cc.botIcon}`}>
+                      <div className={`hidden sm:flex w-8 h-8 rounded-full items-center justify-center flex-shrink-0 ${cc.botIcon}`}>
                         <Bot className="w-5 h-5" />
                       </div>
                     )}
 
-                    <div className={`max-w-[70%] rounded-2xl px-4 py-3 ${
+                    <div className={`max-w-[90%] sm:max-w-[70%] min-w-0 rounded-2xl px-3 sm:px-4 py-3 ${
                       msg.role === 'user' ? `${cc.userBubble} text-white` : 'bg-gray-100 text-gray-900'
                     }`}>
                       {msg.role === 'user' ? (
                         <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                       ) : (
-                        <div className="text-sm break-words">
+                        <div className="text-sm break-words [overflow-wrap:anywhere]">
                           <ReactMarkdown
                             remarkPlugins={[remarkGfm]}
                             rehypePlugins={[rehypeRaw, [rehypeSanitize, defaultSchema]]}
@@ -637,7 +680,7 @@ export function ChatAsistentePage() {
                     </div>
 
                     {msg.role === 'user' && (
-                      <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                      <div className="hidden sm:flex w-8 h-8 bg-gray-200 rounded-full items-center justify-center flex-shrink-0">
                         <User className="w-5 h-5 text-gray-600" />
                       </div>
                     )}
@@ -655,32 +698,32 @@ export function ChatAsistentePage() {
                   </div>
                 )}
 
-                <div ref={messagesEndRef} />
               </>
             )}
           </div>
 
           {/* ── Input ──────────────────────────────────────────────────────── */}
-          <div className="p-4 border-t border-gray-100">
+          <div className="p-3 sm:p-4 border-t border-gray-100">
             <div className="flex gap-2">
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={rolConfig.placeholder}
-                className={`flex-1 resize-none rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 ${cc.ring}`}
+                className={`flex-1 min-w-0 resize-none rounded-lg border border-gray-300 px-3 sm:px-4 py-2 sm:py-3 text-base sm:text-sm focus:outline-none focus:ring-2 ${cc.ring}`}
                 rows={2}
                 disabled={loading}
               />
               <button
                 onClick={handleSend}
                 disabled={!input.trim() || loading}
-                className={`px-6 text-white rounded-lg transition-colors flex items-center gap-2 ${cc.btnPrimary}`}
+                className={`px-4 sm:px-6 text-white rounded-lg transition-colors flex items-center gap-2 ${cc.btnPrimary}`}
+                aria-label="Enviar"
               >
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
               </button>
             </div>
-            <p className="text-xs text-gray-400 mt-2">
+            <p className="hidden sm:block text-xs text-gray-400 mt-2">
               Presioná Enter para enviar, Shift + Enter para nueva línea
             </p>
           </div>
