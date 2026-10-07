@@ -89,11 +89,17 @@ pip install -r requirements.txt
 
 **`backend/.env`:**
 ```env
-DB_PATH=database.db
+DB_NAME=database.db
 JWT_SECRET_KEY=tu_clave_secreta_generada_con_secrets
 JWT_ACCESS_TOKEN_EXPIRES=3600
 JWT_REFRESH_TOKEN_EXPIRES=2592000
 GROQ_API_KEY=tu_clave_de_groq
+
+# Usuarios que se crean al iniciar (si una variable falta, esa cuenta no se crea)
+ADMIN_EMAIL=admin@admin.com
+ADMIN_PASSWORD=elegí_una_contraseña
+DEMO_TUTOR_PASSWORD=elegí_una_contraseña
+DEMO_ALUMNO_PASSWORD=elegí_una_contraseña
 ```
 
 **Generar JWT_SECRET_KEY:**
@@ -134,17 +140,27 @@ El frontend estará corriendo en `http://localhost:5173`
 
 ## Usuarios de Prueba
 
-### Administrador
-- **Email:** admin@admin.com
-- **Contraseña:** admin123
+Al iniciar, el backend crea un administrador y usuarios de prueba **solo si sus
+contraseñas están definidas en las variables de entorno** (`.env` en local, panel
+*Environment* en Render). Las contraseñas no están en el código porque el repositorio es público.
 
-### Tutor
-- **Email:** maria.garcia@universidad.edu
-- **Contraseña:** tutor123
+| Rol | Email | Contraseña |
+|---|---|---|
+| Administrador | `ADMIN_EMAIL` (por defecto admin@admin.com) | `ADMIN_PASSWORD` |
+| Tutores | juan.perez@universidad.edu, maria.garcia@universidad.edu, carlos.rodriguez@universidad.edu | `DEMO_TUTOR_PASSWORD` |
+| Alumnos | ana.martinez@estudiante.edu, pedro.lopez@estudiante.edu, laura.fernandez@estudiante.edu | `DEMO_ALUMNO_PASSWORD` |
 
-### Alumno
-- **Email:** pedro.lopez@estudiante.edu
-- **Contraseña:** alumno123
+Si la cuenta ya existe, reiniciar el servidor no cambia su contraseña.
+
+### Probar la versión publicada
+
+En [sistema-tesinas.vercel.app](https://sistema-tesinas.vercel.app) están habilitadas
+estas cuentas de demostración:
+
+- **Tutor:** maria.garcia@universidad.edu · contraseña `tutor123`
+- **Alumno:** pedro.lopez@estudiante.edu · contraseña `alumno123`
+
+La cuenta de administrador no es pública.
 
 ---
 
@@ -237,7 +253,7 @@ npm run lint             # Análisis estático con ESLint
 
 ## Pruebas Automatizadas
 
-El backend tiene una suite de pruebas con **pytest** (46 tests) que cubre autenticación,
+El backend tiene una suite de pruebas con **pytest** (61 tests) que cubre autenticación,
 control de acceso por rol y por recurso, flujo de versiones de tesinas, el asistente con IA
 y el manejo de errores.
 
@@ -253,9 +269,10 @@ un cliente simulado: no modifican datos reales ni consumen la API.
 | Archivo | Qué verifica |
 |---|---|
 | `tests/test_auth.py` | Login, registro, usuarios inactivos, validación de tokens |
+| `tests/test_seeds.py` | Que las cuentas iniciales solo se creen con contraseñas del entorno |
 | `tests/test_permisos.py` | Que ningún usuario acceda a tesinas, archivos o conversaciones ajenas |
 | `tests/test_tesinas.py` | Subida, envío, revisión, reentrega y sincronización de versiones |
-| `tests/test_chat.py` | Historial del chat, cobertura de la tesina analizada, formato de respuestas |
+| `tests/test_chat.py` | Historial del chat, cobertura de la tesina analizada, pautas institucionales en el contexto, formato de respuestas |
 | `tests/test_errores.py` | Parámetros inválidos y respuestas de error sin detalles internos |
 | `tests/test_utils.py` | Búsqueda sin tildes y armado seguro de filtros SQL |
 

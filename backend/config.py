@@ -40,6 +40,14 @@ SECRET_KEY = os.getenv("SECRET_KEY") or JWT_SECRET_KEY
 # API de GROQ
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
+# Usuarios iniciales
+# Las contraseñas no se escriben en el código (el repositorio es público):
+# se leen del entorno. Si una variable no está definida, esa cuenta no se crea.
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL") or "admin@admin.com"
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
+DEMO_TUTOR_PASSWORD = os.getenv("DEMO_TUTOR_PASSWORD")
+DEMO_ALUMNO_PASSWORD = os.getenv("DEMO_ALUMNO_PASSWORD")
+
 def allowed_file(filename):
     """Verifica si la extensión del archivo es válida"""
     return '.' in filename and \

@@ -18,6 +18,9 @@ os.environ["UPLOAD_FOLDER"] = os.path.join(_TMP, "uploads")
 os.environ["UPLOAD_EJEMPLOS_FOLDER"] = os.path.join(_TMP, "uploads_ejemplos")
 os.environ["GROQ_API_KEY"] = ""  # modo sin IA: el chat responde con el fallback local
 os.environ["JWT_SECRET_KEY"] = "clave-exclusiva-para-tests"
+# Sin contraseñas iniciales: la app no crea admin ni usuarios de prueba al arrancar
+for _var in ("ADMIN_PASSWORD", "DEMO_TUTOR_PASSWORD", "DEMO_ALUMNO_PASSWORD"):
+    os.environ[_var] = ""
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

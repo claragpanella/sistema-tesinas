@@ -1,35 +1,36 @@
 import sqlite3
-from config import DB_PATH
+
+import config
 from utils.auth_utils import hash_password
+
 
 def crear_admin():
     """
-    Crea el usuario administrador por defecto con contraseña hasheada
+    Crea el usuario administrador con los datos de ADMIN_EMAIL y ADMIN_PASSWORD.
+    Si ADMIN_PASSWORD no está definida, no crea nada: así nunca queda una
+    cuenta de administrador con una contraseña conocida por defecto.
     """
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
+    if not config.ADMIN_PASSWORD:
+        print("ℹ️  ADMIN_PASSWORD no definida: no se crea el usuario administrador")
+        return
 
-        # Hashear la contraseña
-        password_plano = "admin123"
-        password_hash = hash_password(password_plano)
+    try:
+        conn = sqlite3.connect(config.DB_PATH)
+        cursor = conn.cursor()
 
         cursor.execute("""
             INSERT OR IGNORE INTO usuarios (nombre, email, password, rol, activo)
             VALUES (?, ?, ?, ?, ?)
         """, (
             "Administrador",
-            "admin@admin.com",
-            password_hash,
+            config.ADMIN_EMAIL,
+            hash_password(config.ADMIN_PASSWORD),
             "admin",
             1
         ))
 
         if cursor.rowcount > 0:
-            print("✅ Usuario administrador creado correctamente")
-            print("   📧 Email: admin@admin.com")
-            print("   🔑 Password: admin123")
-            print("   🔒 Contraseña hasheada con bcrypt")
+            print(f"✅ Usuario administrador creado: {config.ADMIN_EMAIL}")
         else:
             print("ℹ️  El usuario administrador ya existe")
 
@@ -38,6 +39,7 @@ def crear_admin():
 
     except Exception as e:
         print(f"❌ Error al crear administrador: {e}")
+
 
 if __name__ == "__main__":
     crear_admin()

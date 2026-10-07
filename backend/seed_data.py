@@ -1,63 +1,60 @@
 import sqlite3
-from config import DB_PATH
+
+import config
 from utils.auth_utils import hash_password
+
+TUTORES = [
+    ("Dr. Juan Pérez", "juan.perez@universidad.edu"),
+    ("Dra. María García", "maria.garcia@universidad.edu"),
+    ("Dr. Carlos Rodríguez", "carlos.rodriguez@universidad.edu"),
+]
+
+ALUMNOS = [
+    ("Ana Martínez", "ana.martinez@estudiante.edu"),
+    ("Pedro López", "pedro.lopez@estudiante.edu"),
+    ("Laura Fernández", "laura.fernandez@estudiante.edu"),
+]
+
+
+def _crear_usuarios(cursor, usuarios, password, rol):
+    password_hash = hash_password(password)
+    for nombre, email in usuarios:
+        cursor.execute("""
+            INSERT OR IGNORE INTO usuarios (nombre, email, password, rol, activo)
+            VALUES (?, ?, ?, ?, 1)
+        """, (nombre, email, password_hash, rol))
+
 
 def seed_database():
     """
-    Puebla la base de datos con datos de ejemplo para desarrollo
+    Crea tutores y alumnos de prueba. Sus contraseñas se leen de
+    DEMO_TUTOR_PASSWORD y DEMO_ALUMNO_PASSWORD; si una no está definida,
+    ese grupo de usuarios no se crea.
     """
+    if not config.DEMO_TUTOR_PASSWORD and not config.DEMO_ALUMNO_PASSWORD:
+        print("ℹ️  DEMO_TUTOR_PASSWORD y DEMO_ALUMNO_PASSWORD no definidas: no se cargan usuarios de prueba")
+        return
+
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(config.DB_PATH)
         cursor = conn.cursor()
 
-        print("🌱 Cargando datos de prueba...")
+        print("🌱 Cargando usuarios de prueba...")
 
-        # Hashear contraseñas
-        tutor_password = hash_password("tutor123")
-        alumno_password = hash_password("alumno123")
+        if config.DEMO_TUTOR_PASSWORD:
+            _crear_usuarios(cursor, TUTORES, config.DEMO_TUTOR_PASSWORD, "tutor")
+            print(f"✅ {len(TUTORES)} tutores creados")
 
-        # =========================
-        # 1. Crear Tutores
-        # =========================
-        tutores = [
-            ("Dr. Juan Pérez", "juan.perez@universidad.edu", tutor_password, "tutor", 1),
-            ("Dra. María García", "maria.garcia@universidad.edu", tutor_password, "tutor", 1),
-            ("Dr. Carlos Rodríguez", "carlos.rodriguez@universidad.edu", tutor_password, "tutor", 1),
-        ]
-
-        for tutor in tutores:
-            cursor.execute("""
-                INSERT OR IGNORE INTO usuarios (nombre, email, password, rol, activo)
-                VALUES (?, ?, ?, ?, ?)
-            """, tutor)
-
-        print(f"✅ {len(tutores)} tutores creados")
-
-        # =========================
-        # 2. Crear Alumnos
-        # =========================
-        alumnos = [
-            ("Ana Martínez", "ana.martinez@estudiante.edu", alumno_password, "alumno", 1),
-            ("Pedro López", "pedro.lopez@estudiante.edu", alumno_password, "alumno", 1),
-            ("Laura Fernández", "laura.fernandez@estudiante.edu", alumno_password, "alumno", 1),
-        ]
-
-        for alumno in alumnos:
-            cursor.execute("""
-                INSERT OR IGNORE INTO usuarios (nombre, email, password, rol, activo)
-                VALUES (?, ?, ?, ?, ?)
-            """, alumno)
-
-        print(f"✅ {len(alumnos)} alumnos creados")
+        if config.DEMO_ALUMNO_PASSWORD:
+            _crear_usuarios(cursor, ALUMNOS, config.DEMO_ALUMNO_PASSWORD, "alumno")
+            print(f"✅ {len(ALUMNOS)} alumnos creados")
 
         conn.commit()
         conn.close()
 
-        print("✅ Datos de prueba cargados correctamente")
-        print("🔒 Todas las contraseñas fueron hasheadas con bcrypt")
-
     except Exception as e:
         print(f"❌ Error al cargar datos de prueba: {e}")
+
 
 if __name__ == "__main__":
     respuesta = input("⚠️  ¿Cargar datos de prueba en la base de datos? (si/no): ")
