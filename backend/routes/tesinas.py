@@ -5,7 +5,7 @@ from flask import Blueprint, request, jsonify
 
 from config import UPLOAD_FOLDER, allowed_file
 from utils.db_utils import get_db
-from utils.file_utils import save_file_safely
+from utils.file_utils import MENSAJE_CONTENIDO_INVALIDO, contenido_coincide_con_extension, save_file_safely
 from utils.jwt_utils import token_required, alumno_required, tutor_required, admin_required
 from utils.pagination_utils import create_pagination_response, get_pagination_params
 
@@ -37,6 +37,8 @@ def subir_tesina():
 
         if not allowed_file(archivo.filename):
             return jsonify({"error": "Tipo de archivo no permitido. Solo se aceptan: PDF o DOCX"}), 400
+        if not contenido_coincide_con_extension(archivo):
+            return jsonify({"error": MENSAJE_CONTENIDO_INVALIDO}), 400
 
         titulo   = request.form.get('titulo', '').strip()
         resumen  = request.form.get('resumen', '').strip()
@@ -404,6 +406,8 @@ def reemplazar_archivo_tesina(tesina_id):
                 return jsonify({
                     "error": "Tipo de archivo no permitido. Solo se aceptan: PDF o DOCX"
                 }), 400
+            if not contenido_coincide_con_extension(file):
+                return jsonify({"error": MENSAJE_CONTENIDO_INVALIDO}), 400
 
             # Archivo de la versión actual (el que se va a reemplazar)
             cursor.execute("""
@@ -536,6 +540,8 @@ def reentregar_tesina(tesina_id):
             return jsonify({
                 "error": "Tipo de archivo no permitido. Solo se aceptan: PDF o DOCX"
             }), 400
+        if not contenido_coincide_con_extension(file):
+            return jsonify({"error": MENSAJE_CONTENIDO_INVALIDO}), 400
 
         with get_db() as conn:
             cursor = conn.cursor()

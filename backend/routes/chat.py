@@ -8,6 +8,7 @@ from flask import Blueprint, jsonify, request
 from config import GROQ_API_KEY, UPLOAD_FOLDER
 from utils.db_utils import get_db
 from utils.jwt_utils import alumno_o_tutor_required
+from utils.rate_limit import LIMITE_CHAT, LIMITE_REFERENCIA_APA, limiter
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
 logger = logging.getLogger(__name__)
@@ -339,6 +340,7 @@ def convertir_tablas_a_lista(texto: str) -> str:
 # =============================================================================
 
 @chat_bp.route("/chat/asistente", methods=["POST"])
+@limiter.limit(LIMITE_CHAT)
 @alumno_o_tutor_required
 def chat_asistente():
     try:
@@ -684,6 +686,7 @@ def actualizar_titulo_conversacion(conversacion_id):
 # =============================================================================
 
 @chat_bp.route("/chat/generar-referencia", methods=["POST"])
+@limiter.limit(LIMITE_REFERENCIA_APA)
 @alumno_o_tutor_required
 def generar_referencia_apa():
     try:

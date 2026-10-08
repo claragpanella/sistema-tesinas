@@ -8,6 +8,7 @@ from utils.jwt_utils import (
     decode_token,
     token_required
 )
+from utils.rate_limit import LIMITE_LOGIN, LIMITE_REGISTRO, limiter
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,7 @@ auth_bp = Blueprint("auth", __name__)
 
 
 @auth_bp.route("/login", methods=["POST"])
+@limiter.limit(LIMITE_LOGIN)
 def login():
     """Endpoint de login que retorna tokens JWT"""
     try:
@@ -150,6 +152,7 @@ def get_current_user():
 
 
 @auth_bp.route("/register", methods=["POST"])
+@limiter.limit(LIMITE_REGISTRO)
 def register():
     """
     Endpoint de registro de nuevos usuarios.

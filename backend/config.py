@@ -40,6 +40,9 @@ SECRET_KEY = os.getenv("SECRET_KEY") or JWT_SECRET_KEY
 # API de GROQ
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
+# Límite de solicitudes (rate limiting). Se puede desactivar con RATELIMIT_ENABLED=false
+RATELIMIT_ENABLED = os.getenv("RATELIMIT_ENABLED", "true").strip().lower() != "false"
+
 # Usuarios iniciales
 # Las contraseñas no se escriben en el código (el repositorio es público):
 # se leen del entorno. Si una variable no está definida, esa cuenta no se crea.

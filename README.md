@@ -46,10 +46,11 @@ Sistema web completo para la gestión de tesinas universitarias con roles de adm
 - **SQLite** - Base de datos
 - **JWT** - Autenticación
 - **bcrypt** - Encriptación de contraseñas
+- **Flask-Limiter** - Límite de intentos por IP
 - **Groq API** - Chat asistente con IA
 
 ### Frontend
-- **React 18** - Librería UI
+- **React 19** - Librería UI
 - **React Router** - Navegación
 - **Axios** - Peticiones HTTP
 - **Tailwind CSS** - Estilos
@@ -253,7 +254,7 @@ npm run lint             # Análisis estático con ESLint
 
 ## Pruebas Automatizadas
 
-El backend tiene una suite de pruebas con **pytest** (61 tests) que cubre autenticación,
+El backend tiene una suite de pruebas con **pytest** (75 tests) que cubre autenticación,
 control de acceso por rol y por recurso, flujo de versiones de tesinas, el asistente con IA
 y el manejo de errores.
 
@@ -272,6 +273,8 @@ un cliente simulado: no modifican datos reales ni consumen la API.
 | `tests/test_seeds.py` | Que las cuentas iniciales solo se creen con contraseñas del entorno |
 | `tests/test_permisos.py` | Que ningún usuario acceda a tesinas, archivos o conversaciones ajenas |
 | `tests/test_tesinas.py` | Subida, envío, revisión, reentrega y sincronización de versiones |
+| `tests/test_archivos.py` | Que el contenido de los archivos corresponda a su extensión (PDF o DOCX reales) |
+| `tests/test_rate_limit.py` | Límite de intentos por IP en login y en el asistente |
 | `tests/test_chat.py` | Historial del chat, cobertura de la tesina analizada, pautas institucionales en el contexto, formato de respuestas |
 | `tests/test_errores.py` | Parámetros inválidos y respuestas de error sin detalles internos |
 | `tests/test_utils.py` | Búsqueda sin tildes y armado seguro de filtros SQL |
@@ -283,7 +286,8 @@ un cliente simulado: no modifican datos reales ni consumen la API.
 - ✅ Autenticación JWT con tokens de acceso y refresco
 - ✅ Contraseñas hasheadas con bcrypt
 - ✅ Validación de roles en cada endpoint
-- ✅ Validación de archivos (tipo y extensión)
+- ✅ Validación de archivos: extensión y contenido real (firma del formato PDF o DOCX)
+- ✅ Límite de intentos por IP en login, registro y asistente de IA (Flask-Limiter)
 - ✅ Protección contra inyección SQL (queries parametrizadas)
 - ✅ CORS configurado
 - ✅ Variables de entorno para secretos

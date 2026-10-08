@@ -318,7 +318,10 @@ export function ChatAsistentePage() {
         ...prev,
         {
           role: 'assistant',
-          content: 'Lo siento, hubo un error al procesar tu mensaje. Por favor, intentá de nuevo.',
+          // 429: se superó el límite de consultas por minuto; se muestra el aviso del servidor
+          content: err.response?.status === 429
+            ? `⚠️ ${err.response.data?.error}`
+            : 'Lo siento, hubo un error al procesar tu mensaje. Por favor, intentá de nuevo.',
         },
       ])
     } finally {

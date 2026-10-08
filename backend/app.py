@@ -9,6 +9,7 @@ from werkzeug.exceptions import HTTPException
 import config
 
 from database import init_db
+from utils.rate_limit import limiter, respuesta_limite_excedido
 from config import UPLOAD_FOLDER, UPLOAD_EJEMPLOS_FOLDER
 
 from routes.tesinas import tesinas_bp
@@ -32,6 +33,10 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.config['SECRET_KEY'] = config.SECRET_KEY
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
+
+# Límite de solicitudes por IP en login, registro y asistente (utils/rate_limit.py)
+app.config['RATELIMIT_ENABLED'] = config.RATELIMIT_ENABLED
+limiter.init_app(app)
 
 # Asegura que existan las carpetas de uploads (fuera de __main__ para que
 # también corra bajo Gunicorn en producción, no solo con `python app.py`)
@@ -132,6 +137,11 @@ def home():
             "admin": "/admin/*"
         }
     }
+
+@app.errorhandler(429)
+def demasiadas_solicitudes(e):
+    return respuesta_limite_excedido(e)
+
 
 @app.errorhandler(413)
 def archivo_demasiado_grande(e):

@@ -28,6 +28,7 @@ from app import app as flask_app  # noqa: E402
 from utils.auth_utils import hash_password  # noqa: E402
 from utils.db_utils import get_db  # noqa: E402
 from utils.jwt_utils import generate_access_token  # noqa: E402
+from utils.rate_limit import limiter  # noqa: E402
 
 PASSWORD = "clave-de-prueba"
 _PASSWORD_HASH = hash_password(PASSWORD)  # bcrypt es lento: se calcula una sola vez
@@ -39,6 +40,13 @@ USUARIOS = {
     "ana":    ("Ana Alumna",   "ana@test.com",    "alumno"),
     "pedro":  ("Pedro Alumno", "pedro@test.com",  "alumno"),
 }
+
+
+@pytest.fixture(autouse=True)
+def reiniciar_limites():
+    """Cada test arranca con los contadores del límite de solicitudes en cero."""
+    limiter.reset()
+    yield
 
 
 @pytest.fixture

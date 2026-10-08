@@ -4,7 +4,7 @@ import os
 from config import UPLOAD_EJEMPLOS_FOLDER, allowed_file
 from models.ejemplo import Ejemplo
 from utils.db_utils import get_db
-from utils.file_utils import save_file_safely
+from utils.file_utils import MENSAJE_CONTENIDO_INVALIDO, contenido_coincide_con_extension, save_file_safely
 from utils.jwt_utils import token_required, admin_required
 from utils.pagination_utils import create_pagination_response, get_pagination_params
 from utils.filter_utils import get_filter_params, build_where_clause
@@ -184,6 +184,8 @@ def subir_ejemplo():
             return jsonify({
                 "error": "Tipo de archivo no permitido. Solo se aceptan: PDF o DOCX"
             }), 400
+        if not contenido_coincide_con_extension(file):
+            return jsonify({"error": MENSAJE_CONTENIDO_INVALIDO}), 400
 
         try:
             anio = int(anio)
