@@ -254,7 +254,7 @@ npm run lint             # Análisis estático con ESLint
 
 ## Pruebas Automatizadas
 
-El backend tiene una suite de pruebas con **pytest** (75 tests) que cubre autenticación,
+El backend tiene una suite de pruebas con **pytest** (77 tests) que cubre autenticación,
 control de acceso por rol y por recurso, flujo de versiones de tesinas, el asistente con IA
 y el manejo de errores.
 

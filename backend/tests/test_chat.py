@@ -4,6 +4,7 @@ registra lo que se le envía, así se puede verificar el prompt sin llamar a la 
 """
 import io
 from types import SimpleNamespace
+from datetime import datetime
 
 import docx
 import pytest
@@ -151,6 +152,18 @@ def pautas_conocidas():
 
 def prompt_de_sistema(groq_falso):
     return groq_falso.llamadas[-1][0]["content"]
+
+
+def test_el_prompt_incluye_la_fecha_actual(client, auth, groq_falso):
+    client.post("/chat/asistente", headers=auth["ana"], json={"message": "hola"})
+    hoy = datetime.now(chat.ZONA_HORARIA_ARGENTINA)
+    assert "FECHA ACTUAL: hoy es" in prompt_de_sistema(groq_falso)
+    assert f"({hoy:%Y-%m-%d})" in prompt_de_sistema(groq_falso)
+
+
+def test_la_fecha_se_escribe_en_castellano():
+    texto = chat.contexto_fecha_actual(datetime(2026, 10, 8, 0, 50, tzinfo=chat.ZONA_HORARIA_ARGENTINA))
+    assert "hoy es 8 de octubre de 2026 (2026-10-08)" in texto
 
 
 def test_las_pautas_institucionales_se_envian_a_tesibot(client, auth, groq_falso, pautas_conocidas):

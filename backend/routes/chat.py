@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import re
+from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, jsonify, request
 
@@ -174,6 +175,25 @@ def construir_contexto_pautas(pautas: str) -> str:
 
 
 # ─── Respuesta mock (fallback sin Groq) ──────────────────────────────────────
+ZONA_HORARIA_ARGENTINA = timezone(timedelta(hours=-3))  # Argentina no usa horario de verano
+_MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
+          "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+
+
+def contexto_fecha_actual(ahora: datetime | None = None) -> str:
+    """
+    Informa al modelo la fecha de hoy. El modelo no la conoce por sí mismo y,
+    si no se le indica, inventa fechas (por ejemplo, en los nombres de archivo
+    de ejemplo o al hablar de plazos).
+    """
+    ahora = ahora or datetime.now(ZONA_HORARIA_ARGENTINA)
+    return (
+        f"FECHA ACTUAL: hoy es {ahora.day} de {_MESES[ahora.month - 1]} de {ahora.year} "
+        f"({ahora:%Y-%m-%d}). Usá esta fecha cuando necesites la fecha de hoy "
+        "(por ejemplo, en ejemplos de nombres de archivo o al hablar de plazos)."
+    )
+
+
 def get_mock_response(user_message: str, tesina_titulo: str | None = None) -> str:
     msg_lower = user_message.lower()
 
@@ -485,6 +505,7 @@ def chat_asistente():
             + f"\n\nEl nombre del {nombre_rol} con quien estás hablando es {nombre_usuario}. "
               "Saludalo usando su nombre completo al inicio de la conversación si es el primer mensaje. "
               "No uses ningún otro nombre para referirte a esta persona."
+            + f"\n\n{contexto_fecha_actual()}"
             + (f"\n\n{contexto_pautas}" if contexto_pautas else "")
             + (f"\n\n{tesina_context}" if tesina_context else "")
             + aviso_alumno
