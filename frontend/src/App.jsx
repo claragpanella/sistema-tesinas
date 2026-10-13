@@ -13,6 +13,7 @@ import { RegisterPage } from './pages/RegisterPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { PautasPage } from './pages/PautasPage'
 import { EjemplosPage } from './pages/EjemplosPage'
+import { TutoresPage } from './pages/TutoresPage'
 import { TesinaListPage } from './pages/TesinaListPage'
 import { SubirTesinaPage } from './pages/SubirTesinaPage'
 import { AdminEjemplosPage } from './pages/admin/AdminEjemplosPage'
@@ -77,6 +78,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <EjemplosPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route path="/tutores"
+            element={
+              <ProtectedRoute>
+                <TutoresPage />
               </ProtectedRoute>
             }
           />

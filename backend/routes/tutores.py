@@ -1,6 +1,7 @@
 import logging
+import re
 from flask import Blueprint, request, jsonify
-from utils.db_utils import get_db
+from utils.db_utils import _normalize, get_db
 from utils.jwt_utils import admin_required, token_required
 from utils.auth_utils import hash_password
 from utils.pagination_utils import create_pagination_response, get_pagination_params
@@ -12,7 +13,33 @@ tutores_bp = Blueprint("tutores", __name__)
 
 
 # =========================
-# LISTAR TUTORES ACTIVOS (PÚBLICO - para formularios)
+# COMPARACIÓN FLEXIBLE DE NOMBRES
+# =========================
+# En la tabla ejemplos el tutor está guardado como texto libre, así que para
+# vincular cada ejemplo con la cuenta del tutor se comparan los nombres sin
+# tildes, sin mayúsculas, sin signos y sin títulos académicos.
+TITULOS = {"dr", "dra", "ing", "lic", "mg", "mgter", "msc", "phd", "prof", "profa", "arq", "cp", "cpn"}
+
+
+def palabras_del_nombre(nombre):
+    texto = re.sub(r"[^a-z\s]", " ", _normalize(nombre or ""))
+    return {p for p in texto.split() if p not in TITULOS}
+
+
+def mismo_nombre(nombre_a, nombre_b):
+    """
+    True si todas las palabras del nombre más corto están en el otro.
+    Se exigen al menos dos palabras (nombre y apellido) para no vincular
+    a dos personas solo por compartir el apellido.
+    """
+    a, b = palabras_del_nombre(nombre_a), palabras_del_nombre(nombre_b)
+    corto, largo = (a, b) if len(a) <= len(b) else (b, a)
+    return len(corto) >= 2 and corto <= largo
+
+
+# =========================
+# LISTAR TUTORES ACTIVOS (cualquier usuario autenticado)
+# Lo usan el formulario de carga de tesina y la página "Tutores" del alumno.
 # =========================
 @tutores_bp.route("/tutores", methods=["GET"])
 @token_required
@@ -22,23 +49,35 @@ def listar_tutores():
             cursor = conn.cursor()
 
             cursor.execute("""
-                SELECT id, nombre
-                FROM usuarios
-                WHERE rol = 'tutor'
-                AND activo = 1
-                ORDER BY nombre
+                SELECT u.id, u.nombre, u.email,
+                       (SELECT COUNT(*) FROM tesinas t
+                         WHERE t.tutor_id = u.id
+                           AND t.estado_tutor != 'aprobada') AS tesinas_en_curso
+                FROM usuarios u
+                WHERE u.rol = 'tutor'
+                AND u.activo = 1
+                ORDER BY u.nombre
             """)
+            tutores = cursor.fetchall()
 
-            rows = cursor.fetchall()
+            cursor.execute("SELECT titulo, anio, tutor FROM ejemplos ORDER BY anio DESC, titulo")
+            ejemplos = cursor.fetchall()
 
         return jsonify([
             {
-                "id": r["id"],
-                "nombre": r["nombre"]
+                "id": t["id"],
+                "nombre": t["nombre"],
+                "email": t["email"],
+                "tesinas_en_curso": t["tesinas_en_curso"],
+                "ejemplos_dirigidos": [
+                    {"titulo": e["titulo"], "anio": e["anio"]}
+                    for e in ejemplos
+                    if mismo_nombre(t["nombre"], e["tutor"])
+                ],
             }
-            for r in rows
+            for t in tutores
         ])
-    
+
     except Exception:
         logger.exception("Error al listar tutores")
         return jsonify({"error": "Error al listar tutores"}), 500

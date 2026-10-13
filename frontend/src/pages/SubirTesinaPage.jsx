@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Layout } from '../components/Layout/Layout'
 import { Alert } from '../components/Common/Alert'
 import { Spinner } from '../components/Common/Spinner'
@@ -272,6 +272,12 @@ export function SubirTesinaPage() {
                     </option>
                   ))}
                 </select>
+
+                {tutores.length > 0 && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    ¿No sabés a quién elegir? <Link to="/tutores" className="text-indigo-600 hover:text-indigo-700 font-medium">Conocé a los tutores</Link>
+                  </p>
+                )}
 
                 {tutores.length === 0 && (
                   <p className="text-xs text-red-500 mt-1">

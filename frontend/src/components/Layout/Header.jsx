@@ -12,6 +12,7 @@ const NAVEGACION = {
     { to: '/chat', label: 'TesiBot' },
     { to: '/pautas', label: 'Pautas' },
     { to: '/ejemplos', label: 'Ejemplos' },
+    { to: '/tutores', label: 'Tutores' },
   ],
   tutor: [
     { to: '/tutor/dashboard', label: 'Inicio' },

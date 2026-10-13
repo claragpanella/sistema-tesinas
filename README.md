@@ -28,6 +28,7 @@ Sistema web completo para la gestión de tesinas universitarias con roles de adm
 ### Contenido Académico
 - **Pautas:** Normas APA, estructura, formato
 - **Ejemplos:** Tesinas modelo para referencia
+- **Tutores:** Tutores disponibles con su email, tesinas en curso y trabajos que dirigieron
 - Gestión completa por parte del admin
 
 ### Interfaz de Usuario
@@ -214,6 +215,7 @@ repo-tesinas/
 - ✅ Ver estado y observaciones
 - ✅ Chat asistente con IA
 - ✅ Consultar pautas y ejemplos
+- ✅ Conocer los tutores disponibles antes de elegir
 - ✅ Ver historial de versiones
 
 ---
@@ -254,7 +256,7 @@ npm run lint             # Análisis estático con ESLint
 
 ## Pruebas Automatizadas
 
-El backend tiene una suite de pruebas con **pytest** (77 tests) que cubre autenticación,
+El backend tiene una suite de pruebas con **pytest** (82 tests) que cubre autenticación,
 control de acceso por rol y por recurso, flujo de versiones de tesinas, el asistente con IA
 y el manejo de errores.
 

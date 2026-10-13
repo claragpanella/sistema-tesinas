@@ -35,6 +35,13 @@ function EjemploModal({ ejemplo, onClose, onSaved }) {
   const [file, setFile] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  // Tutores con cuenta, para sugerirlos en el campo "Tutor" y que el nombre
+  // quede escrito igual que su cuenta (así el ejemplo aparece en su perfil).
+  const [tutores, setTutores] = useState([])
+
+  useEffect(() => {
+    api.get('/tutores').then((r) => setTutores(r.data)).catch(() => setTutores([]))
+  }, [])
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -173,9 +180,17 @@ function EjemploModal({ ejemplo, onClose, onSaved }) {
                 value={form.tutor}
                 onChange={handleChange}
                 className="input"
+                list="tutores-sugeridos"
+                autoComplete="off"
                 required
                 disabled={loading}
               />
+              <datalist id="tutores-sugeridos">
+                {tutores.map((t) => <option key={t.id} value={t.nombre} />)}
+              </datalist>
+              <p className="text-xs text-gray-500 mt-1">
+                Elegí un tutor de la lista para vincular el trabajo con su perfil. Si ya no tiene cuenta, escribí su nombre.
+              </p>
             </div>
           </div>
 

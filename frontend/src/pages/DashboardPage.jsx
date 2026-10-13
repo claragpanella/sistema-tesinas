@@ -178,6 +178,13 @@ function AlumnoDashboard({ user }) {
       color: 'indigo',
     }] : []),
     {
+      icon: Users,
+      title: 'Tutores',
+      subtitle: 'Conocé con quién trabajar',
+      path: '/tutores',
+      color: 'blue',
+    },
+    {
       icon: MessageSquare,
       title: 'Chat Asistente',
       subtitle: 'Ayuda con tu tesina',
@@ -210,7 +217,7 @@ function AlumnoDashboard({ user }) {
           ¿Qué querés hacer hoy?
         </p>
       </div>
-      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-6 ${tesina ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
+      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-6 ${tesina ? 'lg:grid-cols-3' : 'lg:grid-cols-5'}`}>
         {/* Con tesina cargada, "Mi tesina" muestra su estado y ocupa dos lugares */}
         {tesina && <TesinaProgreso tesina={tesina} />}
         {menuItems.map((item, i) => (
