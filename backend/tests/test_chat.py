@@ -19,12 +19,14 @@ class GroqFalso:
         self.llamadas = []
         self.parametros = []
         self.respuesta = respuesta
+        self.finish_reason = "stop"
 
     def create(self, **kwargs):
         self.llamadas.append(kwargs["messages"])
         self.parametros.append(kwargs)
         texto = self.respuesta if self.respuesta is not None else f"respuesta {len(self.llamadas)}"
-        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=texto))])
+        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=texto),
+                                                        finish_reason=self.finish_reason)])
 
 
 @pytest.fixture
@@ -223,3 +225,14 @@ def test_si_fallan_las_pautas_el_chat_sigue_funcionando(client, auth, groq_falso
             conn.execute("ALTER TABLE pautas_tmp RENAME TO pautas")
     assert r.status_code == 200
     assert "PAUTAS INSTITUCIONALES" not in prompt_de_sistema(groq_falso)
+
+
+def test_respuesta_cortada_por_longitud_avisa_al_usuario(client, auth, groq_falso):
+    groq_falso.finish_reason = "length"
+    r = client.post("/chat/asistente", headers=auth["ana"], json={"message": "analizá"})
+    assert "se cortó por su extensión" in r.get_json()["response"]
+
+
+def test_respuesta_completa_no_agrega_aviso(client, auth, groq_falso):
+    r = client.post("/chat/asistente", headers=auth["ana"], json={"message": "hola"})
+    assert "se cortó" not in r.get_json()["response"]

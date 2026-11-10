@@ -344,24 +344,36 @@ export function ChatAsistentePage() {
     }
   }, [handleSend])
 
+  // ─── Mensaje de análisis según el rol ─────────────────────────────────────
+  // El alumno pide un análisis de su propia tesina; el tutor, uno que lo ayude
+  // a preparar la devolución sobre la tesina de su alumno.
+  const mensajeAnalisis = useCallback((tesinaId) => {
+    if (!isTutor) {
+      return 'Analizá mi tesina y decime qué problemas, errores o aspectos a mejorar encontrás.'
+    }
+    const nombreAlumno = tesinas.find((t) => t.id === tesinaId)?.alumno_nombre
+    const deQuien = nombreAlumno ? ` de ${nombreAlumno}` : ''
+    return `Analizá la tesina${deQuien} y señalá sus fortalezas, los problemas o errores que encuentres y los aspectos a mejorar, para preparar mi devolución.`
+  }, [isTutor, tesinas])
+
   // ─── Auto-análisis vía chat (cuando viene ?autoanalizar=1) ───────────────
   useEffect(() => {
     if (!pendingAutoAnalisis.current || !selectedTesina) return
     pendingAutoAnalisis.current = false
     sendMessage(
-      'Analizá mi tesina y decime qué problemas, errores o aspectos a mejorar encontrás.',
+      mensajeAnalisis(selectedTesina),
       selectedTesina
     )
-  }, [selectedTesina, sendMessage])
+  }, [selectedTesina, sendMessage, mensajeAnalisis])
 
   // ─── Analizar tesina ──────────────────────────────────────────────────────
   const analizarTesina = useCallback(() => {
     if (!selectedTesina) return
     sendMessage(
-      'Analizá mi tesina y decime qué problemas, errores o aspectos a mejorar encontrás.',
+      mensajeAnalisis(selectedTesina),
       selectedTesina
     )
-  }, [selectedTesina, sendMessage])
+  }, [selectedTesina, sendMessage, mensajeAnalisis])
 
   // ─── Datos derivados ──────────────────────────────────────────────────────
   const tesinaSeleccionada = useMemo(

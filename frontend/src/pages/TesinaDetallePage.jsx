@@ -367,6 +367,16 @@ function EditarTesinaModal({ tesina, onClose, onSaved }) {
   )
 }
 
+// Lleva a la versión indicada en el historial y la resalta unos segundos
+const CLASES_RESALTADO = ['ring-2', 'ring-red-300', 'rounded-xl']
+function verDevolucion(numeroVersion) {
+  const el = document.getElementById(`version-${numeroVersion}`)
+  if (!el) return
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  el.classList.add(...CLASES_RESALTADO)
+  setTimeout(() => el.classList.remove(...CLASES_RESALTADO), 2500)
+}
+
 // =========================
 // Línea de tiempo de versiones
 // =========================
@@ -384,7 +394,7 @@ function VersionTimeline({ versiones }) {
         const esWord = ext === 'docx' || ext === 'doc'
 
         return (
-          <div key={version.version_id} className="relative">
+          <div key={version.version_id} id={`version-${version.numero_version}`} className="relative scroll-mt-24">
             {index < versiones.length - 1 && (
               <div className="absolute left-5 top-10 w-0.5 h-full bg-gray-200 -z-10" />
             )}
@@ -576,15 +586,6 @@ export function TesinaDetallePage() {
                 Editar tesina
               </button>
             )}
-            {puedeReentregar && (
-              <button
-                onClick={() => setShowReentregaModal(true)}
-                className="btn btn-primary flex items-center gap-2"
-              >
-                <Upload className="w-4 h-4" />
-                Reenviar versión
-              </button>
-            )}
           </div>
         </div>
       </div>
@@ -664,22 +665,31 @@ export function TesinaDetallePage() {
         </div>
       )}
 
-      {/* Banner rechazada */}
+      {/* Banner rechazada: estado y acción; la devolución queda en su versión del historial */}
       {tesina?.estado_tutor === 'rechazada' && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-          <h4 className="font-semibold text-red-900 mb-1">Tesina rechazada</h4>
-          {tesina?.observaciones && (
-            <>
-              <p className="text-sm text-red-700 mb-2">Tu tutor solicitó correcciones:</p>
-              <div className="bg-white p-3 rounded border border-red-200">
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">{tesina.observaciones}</p>
-              </div>
-            </>
-          )}
-          {isAlumno && (
-            <p className="text-xs text-red-600 mt-3">
-              Realizá las correcciones necesarias y usá el botón <strong>Reenviar versión</strong> del encabezado.
-            </p>
+        <div className="mb-6 p-5 bg-red-50 border border-red-200 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h4 className="font-semibold text-red-900">
+              {isAlumno ? 'Tu tutor pidió correcciones' : 'Correcciones solicitadas'}
+            </h4>
+            {versionActual && (
+              <button
+                type="button"
+                onClick={() => verDevolucion(versionActual.numero_version)}
+                className="text-sm text-red-700 underline underline-offset-2 hover:text-red-900 mt-0.5"
+              >
+                Ver la devolución sobre la versión {versionActual.numero_version}
+              </button>
+            )}
+          </div>
+          {puedeReentregar && (
+            <button
+              onClick={() => setShowReentregaModal(true)}
+              className="btn btn-primary flex items-center gap-2 self-start sm:self-auto"
+            >
+              <Upload className="w-4 h-4" />
+              Subir versión corregida
+            </button>
           )}
         </div>
       )}

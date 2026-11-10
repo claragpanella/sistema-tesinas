@@ -522,14 +522,25 @@ def chat_asistente():
         if USE_GROQ:
             try:
                 model   = "openai/gpt-oss-120b" if tesina_context else "openai/gpt-oss-20b"
-                max_tok = 2048 if tesina_context else 1024
+                # Los modelos gpt-oss razonan antes de responder y esos tokens se
+                # descuentan de max_tokens: con un análisis largo, la respuesta
+                # visible podía quedar cortada. Se baja el razonamiento y se da
+                # más margen cuando hay una tesina adjunta.
+                max_tok = 3072 if tesina_context else 1024
                 response = client.chat.completions.create(
                     model=model,
                     messages=groq_messages,
                     max_tokens=max_tok,
                     temperature=0.7,
+                    extra_body={"reasoning_effort": "low"},
                 )
-                response_text = response.choices[0].message.content
+                response_text = response.choices[0].message.content or ""
+                # Si el modelo se detuvo por el límite de longitud, se avisa al usuario
+                if getattr(response.choices[0], "finish_reason", None) == "length":
+                    response_text = response_text.rstrip() + (
+                        "\n\n_La respuesta se cortó por su extensión. "
+                        "Escribí «continuá» para ver el resto._"
+                    )
                 mode = "groq"
 
             except Exception as e:
