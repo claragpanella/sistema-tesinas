@@ -22,6 +22,18 @@ def test_un_alumno_no_puede_subir_una_segunda_tesina(client, auth, usuarios, tes
     assert len(client.get("/tesinas", headers=auth["ana"]).get_json()["items"]) == 1
 
 
+def test_la_base_tambien_impide_una_segunda_tesina_por_alumno(usuarios, tesina_de_ana):
+    """Aunque se inserte directo en la base, saltando el backend, UNIQUE lo impide."""
+    import sqlite3
+    import pytest
+    with pytest.raises(sqlite3.IntegrityError):
+        with get_db() as conn:
+            conn.execute(
+                "INSERT INTO tesinas (titulo, alumno_id, tutor_id) VALUES (?, ?, ?)",
+                ("Segunda tesina", usuarios["ana"], usuarios["tutor"]),
+            )
+
+
 def test_otro_alumno_si_puede_subir_su_propia_tesina(client, auth, usuarios, tesina_de_ana):
     r = client.post("/upload", headers=auth["pedro"], data={
         "titulo": "Tesina de Pedro", "tutor_id": str(usuarios["tutor"]), "file": archivo_pdf(),

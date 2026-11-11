@@ -30,7 +30,7 @@ def init_db():
             id             INTEGER PRIMARY KEY AUTOINCREMENT,
             titulo         TEXT,
             resumen        TEXT,
-            alumno_id      INTEGER,
+            alumno_id      INTEGER UNIQUE,  -- cada alumno tiene una sola tesina (también lo valida el backend)
             tutor_id       INTEGER,
             nombre_archivo TEXT,
             estado_alumno  TEXT DEFAULT 'borrador'  CHECK (estado_alumno IN ('borrador', 'enviada')),
